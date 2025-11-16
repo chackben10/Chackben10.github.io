@@ -154,8 +154,8 @@
   </div>
 
   <script>
-    // Use your custom hostname here
-    const BASE_URL = "https://icas-clicker.work";
+    // Use the SAME hostname as index.html
+    const BASE_URL = 'https://slides.icas-clicker.work';
 
     async function fetchStatus() {
       const statusEl = document.getElementById('statusText');
@@ -182,7 +182,7 @@
         }
         nameEl.textContent = name;
 
-        // Build flattened slides with group name
+        // Build flattened slides with group names
         let slides = [];
         if (presData && presData.presentation && Array.isArray(presData.presentation.groups)) {
           presData.presentation.groups.forEach(group => {
@@ -255,7 +255,6 @@
               focusSlide(i);
             });
           } else {
-            // current slide: no click
             item.disabled = true;
           }
 
@@ -282,7 +281,6 @@
 
         if (!res.ok) throw new Error('Bad response: ' + res.status);
 
-        // After focusing, refresh to update highlight
         await fetchStatus();
         statusEl.textContent = `Now on slide ${index + 1}`;
       } catch (err) {
@@ -297,7 +295,6 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       fetchStatus();
-      // Poll so it stays in sync when using clicker / other devices
       setInterval(fetchStatus, 2000);
     });
   </script>
