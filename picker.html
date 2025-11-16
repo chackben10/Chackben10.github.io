@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Slide Picker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #000000;
+      --title-color: #ff5252;
+      --status-grey: #888888;
+      --slide-bg: #333333;
+      --slide-bg-current: #ffffff;
+      --slide-text: #f0f0f0;
+      --slide-text-current: #000000;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: #ffffff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 12px;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 640px;
+      padding: 16px;
+    }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .presentation-name {
+      text-align: left;
+      color: var(--title-color);
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-right: 8px;
+      min-height: 1.2em;
+    }
+
+    .back-link {
+      font-size: 0.9rem;
+      color: #ffffff;
+      opacity: 0.8;
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #444;
+      white-space: nowrap;
+    }
+
+    .back-link:hover {
+      opacity: 1;
+      background: #222;
+    }
+
+    .status {
+      text-align: left;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--status-grey);
+      min-height: 1.2em;
+    }
+
+    .slides-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .slide-item {
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: var(--slide-bg);
+      color: var(--slide-text);
+      text-align: left;
+      cursor: pointer;
+      border: 1px solid #444;
+      transition: transform 0.05s ease, filter 0.05s ease, border-color 0.05s ease;
+    }
+
+    .slide-item:active {
+      transform: scale(0.98);
+      filter: brightness(0.9);
+    }
+
+    .slide-item.current {
+      background: var(--slide-bg-current);
+      color: var(--slide-text-current);
+      border-color: #888;
+      cursor: default;
+    }
+
+    .slide-item-header {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .slide-number {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .slide-group {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .slide-text {
+      font-size: 0.95rem;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .slide-text br {
+      line-height: 1.2;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="top-row">
+      <div id="presentationName" class="presentation-name">
+        Loading presentation...
+      </div>
+      <a href="index.html" class="back-link">Back to Clicker</a>
+    </div>
+
+    <div id="statusText" class="status">
+      Loading slides...
+    </div>
+
+    <div id="slidesContainer" class="slides-list"></div>
+  </div>
+
+  <script>
+    // Use your custom hostname here
+    const BASE_URL = "https://icas-clicker.work";
+
+    async function fetchStatus() {
+      const statusEl = document.getElementById('statusText');
+      const nameEl = document.getElementById('presentationName');
+      const container = document.getElementById('slidesContainer');
+
+      try {
+        const [presRes, indexRes] = await Promise.all([
+          fetch(`${BASE_URL}/active-presentation`, { method: 'GET', cache: 'no-cache' }),
+          fetch(`${BASE_URL}/slide-index`, { method: 'GET', cache: 'no-cache' })
+        ]);
+
+        if (!presRes.ok || !indexRes.ok) {
+          throw new Error('Bad response from one of the endpoints');
+        }
+
+        const presData = await presRes.json();
+        const idxData = await indexRes.json();
+
+        // Presentation name
+        let name = 'No active presentation';
+        if (presData && presData.presentation && presData.presentation.id && presData.presentation.id.name) {
+          name = presData.presentation.id.name;
+        }
+        nameEl.textContent = name;
+
+        // Build flattened slides with group name
+        let slides = [];
+        if (presData && presData.presentation && Array.isArray(presData.presentation.groups)) {
+          presData.presentation.groups.forEach(group => {
+            const groupName = group && group.name ? group.name : '';
+            if (group && Array.isArray(group.slides)) {
+              group.slides.forEach(slide => {
+                slides.push({
+                  groupName,
+                  text: slide && slide.text ? slide.text : ''
+                });
+              });
+            }
+          });
+        }
+
+        const totalSlides = slides.length;
+        let slideIndex = 0;
+        if (idxData && idxData.presentation_index && typeof idxData.presentation_index.index === 'number') {
+          slideIndex = idxData.presentation_index.index;
+        }
+
+        statusEl.textContent = totalSlides > 0
+          ? `Slide ${slideIndex + 1} of ${totalSlides}`
+          : 'No slides';
+
+        // Render slide buttons
+        container.innerHTML = '';
+        slides.forEach((slide, i) => {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'slide-item';
+          if (i === slideIndex) {
+            item.classList.add('current');
+          }
+
+          const header = document.createElement('div');
+          header.className = 'slide-item-header';
+
+          const numSpan = document.createElement('span');
+          numSpan.className = 'slide-number';
+          numSpan.textContent = (i + 1).toString();
+
+          header.appendChild(numSpan);
+
+          if (slide.groupName) {
+            const groupSpan = document.createElement('span');
+            groupSpan.className = 'slide-group';
+            groupSpan.textContent = slide.groupName;
+            header.appendChild(groupSpan);
+          }
+
+          const textDiv = document.createElement('div');
+          textDiv.className = 'slide-text';
+
+          // Preserve line breaks like on the clicker page
+          const htmlText = (slide.text || '')
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .split('\n')
+            .map(line => line.trimEnd())
+            .join('<br>');
+
+          textDiv.innerHTML = htmlText;
+
+          item.appendChild(header);
+          item.appendChild(textDiv);
+
+          if (i !== slideIndex) {
+            item.addEventListener('click', () => {
+              focusSlide(i);
+            });
+          } else {
+            // current slide: no click
+            item.disabled = true;
+          }
+
+          container.appendChild(item);
+        });
+
+      } catch (err) {
+        console.error(err);
+        nameEl.textContent = 'No active presentation';
+        statusEl.textContent = 'Failed to load slides';
+        container.innerHTML = '';
+      }
+    }
+
+    async function focusSlide(index) {
+      const statusEl = document.getElementById('statusText');
+      statusEl.textContent = `Going to slide ${index + 1}...`;
+
+      try {
+        const res = await fetch(`${BASE_URL}/focus?index=${index}`, {
+          method: 'GET',
+          cache: 'no-cache'
+        });
+
+        if (!res.ok) throw new Error('Bad response: ' + res.status);
+
+        // After focusing, refresh to update highlight
+        await fetchStatus();
+        statusEl.textContent = `Now on slide ${index + 1}`;
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Error changing slide';
+      }
+
+      setTimeout(() => {
+        fetchStatus();
+      }, 800);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchStatus();
+      // Poll so it stays in sync when using clicker / other devices
+      setInterval(fetchStatus, 2000);
+    });
+  </script>
+</body>
+</html>
