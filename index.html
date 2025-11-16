@@ -12,6 +12,7 @@
       --btn-next-bg: #00c853;
       --btn-next-text: #ffffff;
       --title-color: #ff5252;
+      --status-grey: #888888;
     }
 
     * {
@@ -27,8 +28,9 @@
         sans-serif;
       min-height: 100vh;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: flex-start;
+      padding-top: 12px;
     }
 
     .wrapper {
@@ -40,10 +42,51 @@
     .presentation-name {
       text-align: center;
       color: var(--title-color);
-      margin-bottom: 24px;
-      font-size: 1.1rem;
+      margin-bottom: 16px;
+      font-size: 1.4rem; /* ~25% larger than before */
+      font-weight: 700;
+      min-height: 1.4em;
+    }
+
+    .slide-box {
+      margin: 0 auto 8px;
+      background: #ffffff;
+      color: #000000;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+
+      /* 16:9 and limited to at most 1/3 of viewport height on larger screens */
+      aspect-ratio: 16 / 9;
+      width: min(100%, calc(100vh / 3 * 16 / 9));
+    }
+
+    .slide-text {
+      text-align: center;
+      white-space: pre-wrap;
+      word-break: break-word;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+    }
+
+    .slide-status {
+      text-align: center;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      color: var(--status-grey);
+    }
+
+    .slide-status .current {
+      color: #ffffff;
       font-weight: 600;
-      min-height: 1.2em;
+    }
+
+    .slide-status .total {
+      color: var(--status-grey);
     }
 
     .buttons {
@@ -89,11 +132,24 @@
 </head>
 <body>
   <div class="wrapper">
-    <!-- 🔴 Presentation name at the top, centered, red -->
+    <!-- 🔴 Presentation name at the very top, centered, red -->
     <div id="presentationName" class="presentation-name">
       Loading presentation...
     </div>
 
+    <!-- 16:9 box with slide text -->
+    <div id="slideBox" class="slide-box">
+      <p id="slideText" class="slide-text"></p>
+    </div>
+
+    <!-- Slide X of Y -->
+    <div class="slide-status">
+      Slide <span id="slideCurrent" class="current">0</span>
+      of
+      <span id="slideTotal" class="total">0</span>
+    </div>
+
+    <!-- Buttons (unchanged) -->
     <div class="buttons">
       <button class="btn-prev" onclick="sendCommand('previous')">
         Previous
@@ -102,6 +158,7 @@
         Next
       </button>
     </div>
+
     <div class="status" id="statusText">
       Ready
     </div>
@@ -136,38 +193,101 @@
       }, 1000);
     }
 
-    async function refreshPresentationName() {
-      const nameEl = document.getElementById('presentationName');
+    function fitSlideText() {
+      const box = document.getElementById('slideBox');
+      const textEl = document.getElementById('slideText');
+      if (!box || !textEl) return;
 
-      try {
-        const res = await fetch(`${BASE_URL}/active-presentation`, {
-          method: 'GET',
-          cache: 'no-cache'
-        });
+      // Basic auto-fit: start large, shrink until it fits
+      const maxFont = 40; // px
+      const minFont = 14; // px
 
-        if (!res.ok) {
-          throw new Error('Bad response: ' + res.status);
-        }
+      let fontSize = maxFont;
+      textEl.style.fontSize = fontSize + 'px';
 
-        const data = await res.json();
-        // Safely dig out presentation.id.name
-        let name = 'No active presentation';
-        if (data && data.presentation && data.presentation.id && data.presentation.id.name) {
-          name = data.presentation.id.name;
-        }
+      const boxHeight = box.clientHeight - 16; // minus padding margin fudge
+      const boxWidth = box.clientWidth - 16;
 
-        nameEl.textContent = name;
-      } catch (err) {
-        console.error(err);
-        nameEl.textContent = 'No active presentation';
+      while (
+        fontSize > minFont &&
+        (textEl.scrollHeight > boxHeight || textEl.scrollWidth > boxWidth)
+      ) {
+        fontSize -= 1;
+        textEl.style.fontSize = fontSize + 'px';
       }
     }
 
-    // Initial load + periodic refresh
+    async function refreshStatus() {
+      const nameEl = document.getElementById('presentationName');
+      const slideTextEl = document.getElementById('slideText');
+      const slideCurrentEl = document.getElementById('slideCurrent');
+      const slideTotalEl = document.getElementById('slideTotal');
+
+      try {
+        const [presRes, indexRes] = await Promise.all([
+          fetch(`${BASE_URL}/active-presentation`, { method: 'GET', cache: 'no-cache' }),
+          fetch(`${BASE_URL}/slide-index`, { method: 'GET', cache: 'no-cache' })
+        ]);
+
+        if (!presRes.ok || !indexRes.ok) {
+          throw new Error('Bad response from one of the endpoints');
+        }
+
+        const presData = await presRes.json();
+        const idxData = await indexRes.json();
+
+        // Presentation name
+        let name = 'No active presentation';
+        if (presData && presData.presentation && presData.presentation.id && presData.presentation.id.name) {
+          name = presData.presentation.id.name;
+        }
+        nameEl.textContent = name;
+
+        // Flatten all slides from groups to find total + current slide text
+        let slides = [];
+        if (presData && presData.presentation && Array.isArray(presData.presentation.groups)) {
+          presData.presentation.groups.forEach(group => {
+            if (group && Array.isArray(group.slides)) {
+              slides = slides.concat(group.slides);
+            }
+          });
+        }
+
+        const totalSlides = slides.length;
+        let slideIndex = 0;
+        if (idxData && idxData.presentation_index && typeof idxData.presentation_index.index === 'number') {
+          slideIndex = idxData.presentation_index.index;
+        }
+
+        let currentSlideText = '';
+        if (totalSlides > 0 && slideIndex >= 0 && slideIndex < totalSlides) {
+          const slide = slides[slideIndex];
+          if (slide && slide.text) {
+            currentSlideText = slide.text;
+          }
+        }
+
+        slideTextEl.textContent = currentSlideText;
+        slideCurrentEl.textContent = totalSlides > 0 ? (slideIndex + 1) : 0;
+        slideTotalEl.textContent = totalSlides;
+
+        // Resize text to fit box
+        fitSlideText();
+
+      } catch (err) {
+        console.error(err);
+        nameEl.textContent = 'No active presentation';
+        slideTextEl.textContent = '';
+        slideCurrentEl.textContent = '0';
+        slideTotalEl.textContent = '0';
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-      refreshPresentationName();
-      // Poll every 3 seconds to keep it updated; tweak if you want
-      setInterval(refreshPresentationName, 3000);
+      refreshStatus();
+      // Keep updating every few seconds
+      setInterval(refreshStatus, 3000);
+      window.addEventListener('resize', fitSlideText);
     });
   </script>
 </body>
