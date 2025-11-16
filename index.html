@@ -11,6 +11,7 @@
       --btn-prev-text: #000000;
       --btn-next-bg: #00c853;
       --btn-next-text: #ffffff;
+      --title-color: #ff5252;
     }
 
     * {
@@ -34,6 +35,15 @@
       width: 100%;
       max-width: 480px;
       padding: 16px;
+    }
+
+    .presentation-name {
+      text-align: center;
+      color: var(--title-color);
+      margin-bottom: 24px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      min-height: 1.2em;
     }
 
     .buttons {
@@ -73,11 +83,17 @@
       margin-top: 16px;
       font-size: 0.9rem;
       opacity: 0.8;
+      min-height: 1.1em;
     }
   </style>
 </head>
 <body>
   <div class="wrapper">
+    <!-- 🔴 Presentation name at the top, centered, red -->
+    <div id="presentationName" class="presentation-name">
+      Loading presentation...
+    </div>
+
     <div class="buttons">
       <button class="btn-prev" onclick="sendCommand('previous')">
         Previous
@@ -92,8 +108,7 @@
   </div>
 
   <script>
-    // 🔴 CHANGE THIS AFTER YOU SET UP CLOUDFLARE TUNNEL
-    // Example: 'https://your-tunnel-subdomain.trycloudflare.com'
+    // ✅ Put your Cloudflare tunnel URL here
     const BASE_URL = 'https://tongue-grade-introductory-deferred.trycloudflare.com';
 
     async function sendCommand(action) {
@@ -120,6 +135,40 @@
         statusEl.textContent = 'Ready';
       }, 1000);
     }
+
+    async function refreshPresentationName() {
+      const nameEl = document.getElementById('presentationName');
+
+      try {
+        const res = await fetch(`${BASE_URL}/active-presentation`, {
+          method: 'GET',
+          cache: 'no-cache'
+        });
+
+        if (!res.ok) {
+          throw new Error('Bad response: ' + res.status);
+        }
+
+        const data = await res.json();
+        // Safely dig out presentation.id.name
+        let name = 'No active presentation';
+        if (data && data.presentation && data.presentation.id && data.presentation.id.name) {
+          name = data.presentation.id.name;
+        }
+
+        nameEl.textContent = name;
+      } catch (err) {
+        console.error(err);
+        nameEl.textContent = 'No active presentation';
+      }
+    }
+
+    // Initial load + periodic refresh
+    document.addEventListener('DOMContentLoaded', () => {
+      refreshPresentationName();
+      // Poll every 3 seconds to keep it updated; tweak if you want
+      setInterval(refreshPresentationName, 3000);
+    });
   </script>
 </body>
 </html>
