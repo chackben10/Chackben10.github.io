@@ -48,6 +48,27 @@
       min-height: 1.4em;
     }
 
+    .nav-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 8px;
+    }
+    
+    .nav-link {
+      font-size: 0.9rem;
+      color: #ffffff;
+      opacity: 0.8;
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #444;
+    }
+    
+    .nav-link:hover {
+      opacity: 1;
+      background: #222;
+
+
     .slide-box {
       margin: 0 auto 8px;
       background: #ffffff;
@@ -135,6 +156,10 @@
     <div id="presentationName" class="presentation-name">
       Loading presentation...
     </div>
+
+    <div class="nav-row">
+      <a href="picker.html" class="nav-link">Open Slide Picker</a>
+    </div
 
     <!-- 16:9 box with slide text -->
     <div id="slideBox" class="slide-box">
