@@ -39,21 +39,22 @@
       padding: 16px;
     }
 
-    .presentation-name {
-      text-align: center;
-      color: var(--title-color);
-      margin-bottom: 16px;
-      font-size: 1.4rem; /* ~25% larger than before */
-      font-weight: 700;
-      min-height: 1.4em;
-    }
-
-    .nav-row {
+    .top-row {
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 8px;
     }
-    
+
+    .presentation-name {
+      text-align: left;
+      color: var(--title-color);
+      font-size: 1.4rem; /* ~25% larger */
+      font-weight: 700;
+      min-height: 1.4em;
+      margin-right: 8px;
+    }
+
     .nav-link {
       font-size: 0.9rem;
       color: #ffffff;
@@ -62,12 +63,13 @@
       padding: 6px 10px;
       border-radius: 999px;
       border: 1px solid #444;
+      white-space: nowrap;
     }
-    
+
     .nav-link:hover {
       opacity: 1;
       background: #222;
-
+    }
 
     .slide-box {
       margin: 0 auto 8px;
@@ -152,14 +154,13 @@
 </head>
 <body>
   <div class="wrapper">
-    <!-- 🔴 Presentation name at the very top, centered, red -->
-    <div id="presentationName" class="presentation-name">
-      Loading presentation...
+    <!-- Top bar: presentation name + Picker button -->
+    <div class="top-row">
+      <div id="presentationName" class="presentation-name">
+        Loading presentation...
+      </div>
+      <a href="picker.html" class="nav-link">Picker</a>
     </div>
-
-    <div class="nav-row">
-      <a href="picker.html" class="nav-link">Open Slide Picker</a>
-    </div
 
     <!-- 16:9 box with slide text -->
     <div id="slideBox" class="slide-box">
@@ -173,7 +174,7 @@
       <span id="slideTotal" class="total">0</span>
     </div>
 
-    <!-- Buttons (unchanged) -->
+    <!-- Buttons -->
     <div class="buttons">
       <button class="btn-prev" onclick="sendCommand('previous')">
         Previous
@@ -189,7 +190,7 @@
   </div>
 
   <script>
-    // ✅ Put your Cloudflare tunnel URL here
+    // Your tunnel hostname
     const BASE_URL = 'https://slides.icas-clicker.work';
 
     async function sendCommand(action) {
@@ -208,6 +209,7 @@
 
         statusEl.textContent = 'Command sent ✔';
 
+        // Refresh immediately after command
         refreshStatus();
       } catch (err) {
         console.error(err);
@@ -224,14 +226,13 @@
       const textEl = document.getElementById('slideText');
       if (!box || !textEl) return;
 
-      // Basic auto-fit: start large, shrink until it fits
       const maxFont = 40; // px
       const minFont = 14; // px
 
       let fontSize = maxFont;
       textEl.style.fontSize = fontSize + 'px';
 
-      const boxHeight = box.clientHeight - 16; // minus padding margin fudge
+      const boxHeight = box.clientHeight - 16;
       const boxWidth = box.clientWidth - 16;
 
       while (
@@ -292,23 +293,21 @@
             currentSlideText = slide.text;
           }
         }
-        
-        // ✅ Preserve line breaks from ProPresenter (handles \r\n, \r, \n)
+
+        // Preserve line breaks from ProPresenter (\r\n, \r, \n)
         const htmlText = (currentSlideText || '')
-          .replace(/\r\n/g, '\n')   // Windows-style -> \n
-          .replace(/\r/g, '\n')     // Lone \r -> \n
+          .replace(/\r\n/g, '\n')
+          .replace(/\r/g, '\n')
           .split('\n')
           .map(line => line.trimEnd())
           .join('<br>');
-        
+
         slideTextEl.innerHTML = htmlText;
-        
+
         slideCurrentEl.textContent = totalSlides > 0 ? (slideIndex + 1) : 0;
         slideTotalEl.textContent = totalSlides;
-        
-        // Resize text to fit box
-        fitSlideText();
 
+        fitSlideText();
       } catch (err) {
         console.error(err);
         nameEl.textContent = 'No active presentation';
@@ -320,7 +319,6 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       refreshStatus();
-      // Keep updating every few seconds
       setInterval(refreshStatus, 1000);
       window.addEventListener('resize', fitSlideText);
     });
