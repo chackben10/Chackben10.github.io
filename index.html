@@ -182,6 +182,8 @@
         if (!res.ok) throw new Error('Bad response: ' + res.status);
 
         statusEl.textContent = 'Command sent ✔';
+
+        refreshStatus();
       } catch (err) {
         console.error(err);
         statusEl.textContent = 'Error sending command';
