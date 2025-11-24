@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Slide Debug</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #000000;
+      --title-color: #ff5252;
+      --status-grey: #888888;
+      --card-bg: #181818;
+      --border: #333333;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: #ffffff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 12px;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 900px;
+      padding: 16px;
+    }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .title {
+      color: var(--title-color);
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--status-grey);
+      margin-top: 2px;
+    }
+
+    .back-link {
+      font-size: 0.9rem;
+      color: #ffffff;
+      opacity: 0.8;
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #444;
+      white-space: nowrap;
+    }
+
+    .back-link:hover {
+      opacity: 1;
+      background: #222;
+    }
+
+    .status-bar {
+      margin-top: 8px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      color: var(--status-grey);
+    }
+
+    .status-ok {
+      color: #00e676;
+      font-weight: 600;
+    }
+
+    .status-bad {
+      color: #ff5252;
+      font-weight: 600;
+    }
+
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .card-meta {
+      font-size: 0.8rem;
+      color: var(--status-grey);
+    }
+
+    pre {
+      margin-top: 6px;
+      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="top-row">
+      <div>
+        <div class="title">Slide Debug View</div>
+        <div class="subtitle">
+          Inspect raw JSON from Hammerspoon / ProPresenter endpoints.
+        </div>
+      </div>
+      <a href="index.html" class="back-link">Back to Controller</a>
+    </div>
+
+    <div id="globalStatus" class="status-bar">
+      Loading…
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">/health</div>
+          <div id="healthMeta" class="card-meta">Pending…</div>
+        </div>
+        <pre id="healthBody">(waiting)</pre>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">/active-presentation</div>
+          <div id="activeMeta" class="card-meta">Pending…</div>
+        </div>
+        <pre id="activeBody">(waiting)</pre>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">/slide-index</div>
+          <div id="indexMeta" class="card-meta">Pending…</div>
+        </div>
+        <pre id="indexBody">(waiting)</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ IMPORTANT:
+    // Use the SAME BASE_URL as in index.html and picker.html
+    const BASE_URL = 'https://icas-clicker.work'; // or whatever you're using
+
+    function pretty(obj) {
+      try {
+        if (typeof obj === 'string') {
+          // try to parse if it looks like JSON
+          return JSON.stringify(JSON.parse(obj), null, 2);
+        }
+        return JSON.stringify(obj, null, 2);
+      } catch (e) {
+        return String(obj);
+      }
+    }
+
+    function nowString() {
+      const d = new Date();
+      return d.toLocaleTimeString();
+    }
+
+    async function fetchEndpoint(path, metaEl, bodyEl, expectJson = true) {
+      try {
+        const res = await fetch(`${BASE_URL}${path}`, {
+          method: 'GET',
+          cache: 'no-cache',
+        });
+
+        metaEl.textContent = `Status ${res.status} at ${nowString()}`;
+
+        if (!res.ok) {
+          bodyEl.textContent = `Error: HTTP ${res.status}`;
+          return res.ok;
+        }
+
+        if (expectJson) {
+          const data = await res.json();
+          bodyEl.textContent = pretty(data);
+        } else {
+          const text = await res.text();
+          bodyEl.textContent = text;
+        }
+
+        return true;
+      } catch (err) {
+        console.error(`Error fetching ${path}`, err);
+        metaEl.textContent = `Error at ${nowString()}`;
+        bodyEl.textContent = String(err);
+        return false;
+      }
+    }
+
+    async function refreshDebug() {
+      const globalStatus = document.getElementById('globalStatus');
+      const healthMeta = document.getElementById('healthMeta');
+      const healthBody = document.getElementById('healthBody');
+      const activeMeta = document.getElementById('activeMeta');
+      const activeBody = document.getElementById('activeBody');
+      const indexMeta = document.getElementById('indexMeta');
+      const indexBody = document.getElementById('indexBody');
+
+      globalStatus.textContent = 'Refreshing…';
+
+      const [okHealth, okActive, okIndex] = await Promise.all([
+        fetchEndpoint('/health', healthMeta, healthBody, false),
+        fetchEndpoint('/active-presentation', activeMeta, activeBody, true),
+        fetchEndpoint('/slide-index', indexMeta, indexBody, true),
+      ]);
+
+      if (okHealth && okActive && okIndex) {
+        globalStatus.innerHTML =
+          '<span class="status-ok">All endpoints OK</span> — ' +
+          nowString();
+      } else {
+        globalStatus.innerHTML =
+          '<span class="status-bad">One or more endpoints failed</span> — ' +
+          nowString();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      refreshDebug();
+      // Auto-refresh every 5 seconds so you can watch things change
+      setInterval(refreshDebug, 5000);
+    });
+  </script>
+</body>
+</html>
