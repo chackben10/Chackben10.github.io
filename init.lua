@@ -1,59 +1,48 @@
 ------------------------------------------------------------
 -- ProPresenter Remote Control via Clicker + HTTP Server
--- (with persistent globals so GC can't kill it)
+-- (persistent globals so GC can't kill anything)
 ------------------------------------------------------------
 
--- Global namespace to keep references alive across reloads
 proRemote = proRemote or {}
 
 ------------------------------------------------------------
 -- CONFIG
 ------------------------------------------------------------
 
-proRemote.nextSlideKey = 69     -- E key
-proRemote.prevSlideKey = 78     -- N key
+proRemote.nextSlideKey = 69   -- clicker "next"
+proRemote.prevSlideKey = 78   -- clicker "previous"
 
 proRemote.PROPRESENTER_PRESENTATION_BASE = "http://localhost:49232/v1/presentation/active"
 proRemote.PROPRESENTER_SLIDE_INDEX_URL   = "http://localhost:49232/v1/presentation/slide_index"
 proRemote.PROPRESENTER_FOCUSED_BASE      = "http://localhost:49232/v1/presentation/focused"
 
--- Base for thumbnails
+-- Thumbnail base
 proRemote.PROPRESENTER_THUMBNAIL_BASE    = "http://localhost:49232/v1/presentation"
 
+-- HTTP server config
 proRemote.HTTP_SERVER_PORT      = 1337
 proRemote.HTTP_SERVER_INTERFACE = "localhost"
 
 ------------------------------------------------------------
--- ProPresenter Helpers
+-- ProPresenter helpers
 ------------------------------------------------------------
 
--- Trigger next slide
 local function triggerNextSlide()
-    hs.http.asyncGet(
-        proRemote.PROPRESENTER_PRESENTATION_BASE .. "/next/trigger",
-        { ["accept"] = "*/*" },
-        function() end
-    )
-end
-
--- Trigger previous slide
-local function triggerPreviousSlide()
-    hs.http.asyncGet(
-        proRemote.PROPRESENTER_PRESENTATION_BASE .. "/previous/trigger",
-        { ["accept"] = "*/*" },
-        function() end
-    )
-end
-
--- Jump to a specific slide index in the focused presentation
-local function triggerFocusedSlide(index)
-    if type(index) ~= "number" or index < 0 then return end
-    local url = string.format("%s/%d/trigger", proRemote.PROPRESENTER_FOCUSED_BASE, index)
-
+    local url = proRemote.PROPRESENTER_PRESENTATION_BASE .. "/next/trigger"
     hs.http.asyncGet(url, { ["accept"] = "*/*" }, function() end)
 end
 
--- JSON endpoint: active presentation
+local function triggerPreviousSlide()
+    local url = proRemote.PROPRESENTER_PRESENTATION_BASE .. "/previous/trigger"
+    hs.http.asyncGet(url, { ["accept"] = "*/*" }, function() end)
+end
+
+local function triggerFocusedSlide(index)
+    if type(index) ~= "number" or index < 0 then return end
+    local url = string.format("%s/%d/trigger", proRemote.PROPRESENTER_FOCUSED_BASE, index)
+    hs.http.asyncGet(url, { ["accept"] = "*/*" }, function() end)
+end
+
 local function fetchActivePresentationJSON()
     local ok, status, body = pcall(function()
         return hs.http.get(
@@ -65,10 +54,10 @@ local function fetchActivePresentationJSON()
     if not ok or status ~= 200 or not body or body == "" then
         return '{"error":"no response from ProPresenter"}'
     end
+
     return body
 end
 
--- JSON endpoint: slide index
 local function fetchSlideIndexJSON()
     local ok, status, body = pcall(function()
         return hs.http.get(
@@ -80,15 +69,17 @@ local function fetchSlideIndexJSON()
     if not ok or status ~= 200 or not body or body == "" then
         return '{"error":"no response from ProPresenter"}'
     end
+
     return body
 end
 
 ------------------------------------------------------------
--- PNG Thumbnail Fetcher (binary passthrough)
+-- Thumbnail fetcher (fixed using hs.http.doRequest)
 ------------------------------------------------------------
+
 local function fetchThumbnail(uuid, index)
     if not uuid or not index then
-        return "Missing uuid/index\n", 400, "text/plain; charset=utf-8"
+        return "Missing uuid or index", 400, "text/plain; charset=utf-8"
     end
 
     local url = string.format(
@@ -98,16 +89,17 @@ local function fetchThumbnail(uuid, index)
         index
     )
 
-    -- Force PNG output
-    local status, body, headers = hs.http.getBinary(url, {
-        ["accept"] = "image/png"
+    -- hs.http.doRequest works on all Hammerspoon builds
+    local status, body, headers = hs.http.doRequest(url, "GET", nil, {
+        ["Accept"] = "image/png"
     })
 
     if status ~= 200 or not body then
-        return "Thumbnail unavailable\n", 500, "text/plain; charset=utf-8"
+        print("Thumbnail fetch failed: status =", status)
+        return "Error fetching thumbnail", 500, "text/plain; charset=utf-8"
     end
 
-    local contentType = headers["Content-Type"] or "image/png"
+    local contentType = headers and headers["Content-Type"] or "image/png"
 
     return body, 200, contentType
 end
@@ -123,10 +115,7 @@ end
 proRemote.clickerTap = hs.eventtap.new(
     { hs.eventtap.event.types.keyDown },
     function(event)
-        local ok, keyCode = pcall(function()
-            return event:getKeyCode()
-        end)
-
+        local ok, keyCode = pcall(function() return event:getKeyCode() end)
         if not ok or not keyCode then return false end
 
         if keyCode == proRemote.nextSlideKey then
@@ -142,7 +131,7 @@ proRemote.clickerTap = hs.eventtap.new(
 proRemote.clickerTap:start()
 
 ------------------------------------------------------------
--- HTTP server routing
+-- HTTP server helpers
 ------------------------------------------------------------
 
 local function cleanPath(path)
@@ -159,7 +148,7 @@ local function parseQuery(path)
     return params
 end
 
--- router returns body, status, contentType
+-- returns: bodyData, statusCode, contentType
 local function handleHttpPath(rawPath)
     local p      = cleanPath(rawPath)
     local params = parseQuery(rawPath)
@@ -198,7 +187,7 @@ local function handleHttpPath(rawPath)
 end
 
 ------------------------------------------------------------
--- HTTP server wrapper
+-- HTTP server callback
 ------------------------------------------------------------
 
 local function httpCallback(method, path, headers, body)
@@ -209,6 +198,7 @@ local function httpCallback(method, path, headers, body)
     }
 
     if method == "OPTIONS" then
+        baseHeaders["Content-Type"] = "text/plain; charset=utf-8"
         return "", 204, baseHeaders
     end
 
@@ -216,17 +206,19 @@ local function httpCallback(method, path, headers, body)
 
     if not ok then
         print("HTTP handler error:", bodyData)
-        bodyData    = "Internal error\n"
-        statusCode  = 500
+        bodyData   = "Internal error\n"
+        statusCode = 500
         contentType = "text/plain; charset=utf-8"
     end
 
     baseHeaders["Content-Type"] = contentType
-
     return bodyData, statusCode, baseHeaders
 end
 
--- Restart server cleanly on reload
+------------------------------------------------------------
+-- Start / Restart HTTP server
+------------------------------------------------------------
+
 if proRemote.server then
     proRemote.server:stop()
 end
@@ -241,5 +233,7 @@ proRemote.server:start()
 -- Startup notification
 ------------------------------------------------------------
 
-hs.alert.show(("ProPresenter Remote Ready (HTTP + thumbnails on %s:%d)")
-    :format(proRemote.HTTP_SERVER_INTERFACE, proRemote.HTTP_SERVER_PORT))
+hs.alert.show(("ProPresenter remote ready (slides + thumbnails on %s:%d)"):format(
+    proRemote.HTTP_SERVER_INTERFACE,
+    proRemote.HTTP_SERVER_PORT
+))
