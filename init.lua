@@ -29,19 +29,25 @@ proRemote.HTTP_SERVER_INTERFACE = "localhost"
 
 local function triggerNextSlide()
     local url = proRemote.PROPRESENTER_PRESENTATION_BASE .. "/next/trigger"
-    hs.http.asyncGet(url, { ["accept"] = "*/*" })
+    hs.http.asyncGet(url, { ["accept"] = "*/*" }, function(status, body, headers)
+        -- no-op callback
+    end)
 end
 
 local function triggerPreviousSlide()
     local url = proRemote.PROPRESENTER_PRESENTATION_BASE .. "/previous/trigger"
-    hs.http.asyncGet(url, { ["accept"] = "*/*" })
+    hs.http.asyncGet(url, { ["accept"] = "*/*" }, function(status, body, headers)
+        -- no-op callback
+    end)
 end
 
 -- Jump to a specific slide index in the focused presentation
 local function triggerFocusedSlide(index)
     if type(index) ~= "number" or index < 0 then return end
     local url = string.format("%s/%d/trigger", proRemote.PROPRESENTER_FOCUSED_BASE, index)
-    hs.http.asyncGet(url, { ["accept"] = "*/*" })
+    hs.http.asyncGet(url, { ["accept"] = "*/*" }, function(status, body, headers)
+        -- no-op callback
+    end)
 end
 
 local function fetchActivePresentationJSON()
