@@ -165,6 +165,7 @@
     <!-- 16:9 box with slide text -->
     <div id="slideBox" class="slide-box">
       <p id="slideText" class="slide-text"></p>
+      <img id="slideImage" style="display:none; max-width:100%; max-height:100%; object-fit:contain;" />
     </div>
 
     <!-- Slide X of Y -->
@@ -244,6 +245,23 @@
       }
     }
 
+    async function loadThumbnail(uuid, index) {
+      try {
+        const res = await fetch(`${BASE_URL}/thumbnail?uuid=${uuid}&index=${index}`, {
+          method: 'GET',
+          cache: 'no-cache'
+        });
+    
+        if (!res.ok) throw new Error('Bad thumbnail response');
+    
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      } catch (err) {
+        console.error("Thumbnail error", err);
+        return null;
+      }
+    }
+
     async function refreshStatus() {
       const nameEl = document.getElementById('presentationName');
       const slideTextEl = document.getElementById('slideText');
@@ -286,11 +304,13 @@
           slideIndex = idxData.presentation_index.index;
         }
 
-        let currentSlideText = '';
+        let currentSlide = null;
+        let currentSlideText = "";
+        
         if (totalSlides > 0 && slideIndex >= 0 && slideIndex < totalSlides) {
-          const slide = slides[slideIndex];
-          if (slide && slide.text) {
-            currentSlideText = slide.text;
+          currentSlide = slides[slideIndex];
+          if (currentSlide && currentSlide.text) {
+            currentSlideText = currentSlide.text.trim();
           }
         }
 
@@ -302,12 +322,36 @@
           .map(line => line.trimEnd())
           .join('<br>');
 
-        slideTextEl.innerHTML = htmlText;
+        const slideImageEl = document.getElementById('slideImage');
 
+        // CASE 1 — Slide HAS text
+        if (htmlText && htmlText.trim() !== "") {
+          slideImageEl.style.display = "none";
+          slideTextEl.style.display = "block";
+          slideTextEl.innerHTML = htmlText;
+          fitSlideText();
+        }
+        
+        // CASE 2 — Slide HAS NO text — show thumbnail
+        else if (currentSlide && presData.presentation && presData.presentation.id) {
+          const uuid = presData.presentation.id.uuid;
+        
+          slideTextEl.style.display = "none";
+          slideImageEl.style.display = "block";
+        
+          const imgURL = await loadThumbnail(uuid, slideIndex);
+          if (imgURL) {
+            slideImageEl.src = imgURL;
+          } else {
+            slideImageEl.style.display = "none";
+            slideTextEl.style.display = "block";
+            slideTextEl.textContent = "(No Text / No Thumbnail)";
+          }
+        }
+        
+        // Update X of Y
         slideCurrentEl.textContent = totalSlides > 0 ? (slideIndex + 1) : 0;
         slideTotalEl.textContent = totalSlides;
-
-        fitSlideText();
       } catch (err) {
         console.error(err);
         nameEl.textContent = 'No active presentation';
