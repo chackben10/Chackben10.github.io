@@ -155,6 +155,13 @@
       object-fit: contain;
       border-radius: 6px;
     }
+
+     /* Larger thumbnails on bigger screens (iPad / desktop) */
+    @media (min-width: 768px) {
+      .slide-thumb {
+        max-height: 300px; /* 1.5x compared to phones */
+      }
+    }
   </style>
 </head>
 <body>
