@@ -512,17 +512,23 @@
           rowEl.appendChild(scoreCell);
           rowEl.appendChild(controlsCell);
 
-          // Events
+          // Events: name box (auto-apply on blur + Enter)
           renameBtn.addEventListener("click", () => {
             updateRowName(row.id, nameInput.value);
           });
 
           nameInput.addEventListener("keydown", (e) => {
             if (e.key === "Enter") {
-              updateRowName(row.id, nameInput.value);
+              e.preventDefault();
+              nameInput.blur(); // blur will trigger updateRowName
             }
           });
 
+          nameInput.addEventListener("blur", () => {
+            updateRowName(row.id, nameInput.value);
+          });
+
+          // +1 / -1
           plusBtn.addEventListener("click", () => {
             updateRowScore(row.id, 1);
           });
@@ -531,7 +537,7 @@
             updateRowScore(row.id, -1);
           });
 
-          // auto-apply custom value on blur; Enter just triggers blur
+          // custom delta: auto-apply on blur; Enter triggers blur
           customInput.addEventListener("blur", () => {
             applyCustomDelta(row.id, customInput);
           });
