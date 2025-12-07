@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Slide Controller</title>
+  <title>ICAS Clicker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -12,12 +12,7 @@
       --btn-next-bg: #00c853;
       --btn-next-text: #ffffff;
       --title-color: #ff5252;
-      --page-title-color: #bbbbbb;
       --status-grey: #888888;
-      --overlay-bg: rgba(0, 0, 0, 0.7);
-      --card-bg: #111111;
-      --card-border: #333333;
-      --accent: #00c853;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,56 +34,59 @@
       padding: 16px;
     }
 
-    /* Top bar: page title + actions */
+    /* Top bar */
+
     .top-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .page-title {
       font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--page-title-color);
+      font-weight: 500;
+      color: var(--status-grey);
     }
 
-    .top-actions {
+    .top-buttons {
       display: flex;
       gap: 8px;
-      align-items: center;
     }
 
-    .nav-link {
+    .top-btn {
       font-size: 0.9rem;
+      font-weight: 500;
       color: #ffffff;
-      opacity: 0.8;
+      opacity: 0.85;
       text-decoration: none;
-      padding: 6px 10px;
+      padding: 6px 12px;
       border-radius: 999px;
       border: 1px solid #444;
-      white-space: nowrap;
       background: transparent;
+      white-space: nowrap;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      appearance: none;
     }
 
-    .nav-link:hover {
+    .top-btn:hover {
       opacity: 1;
       background: #222;
     }
 
-    /* Presentation title now under buttons */
+    .top-btn:focus {
+      outline: none;
+    }
+
     .presentation-name {
       text-align: left;
       color: var(--title-color);
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       font-weight: 700;
       min-height: 1.4em;
-      margin: 4px 0 10px 0;
+      margin: 4px 0 8px 0;
     }
 
     .slide-box {
@@ -154,32 +152,32 @@
       min-height: 1.1em;
     }
 
-    /* SETTINGS MODAL */
+    /* Settings modal */
+
     .settings-overlay {
       position: fixed;
       inset: 0;
-      background: var(--overlay-bg);
-      display: none;
-      justify-content: center;
+      background: rgba(0,0,0,0.65);
+      display: none;            /* toggled via JS */
       align-items: center;
+      justify-content: center;
       z-index: 999;
     }
 
     .settings-card {
-      background: var(--card-bg);
+      background: #111111;
       border-radius: 12px;
-      border: 1px solid var(--card-border);
-      padding: 16px 18px 12px 18px;
-      width: min(90%, 360px);
-      position: relative;
+      padding: 14px 16px 14px 16px;
+      min-width: 260px;
+      max-width: 340px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.6);
     }
 
     .settings-header {
       display: flex;
-      justify-content: flex-start;
       align-items: center;
+      justify-content: space-between;
       margin-bottom: 10px;
-      padding-right: 24px; /* space so title doesn't run under the X */
     }
 
     .settings-title {
@@ -188,88 +186,88 @@
     }
 
     .settings-close {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: transparent;
       border: none;
+      background: none;
       color: #ffffff;
       font-size: 1.2rem;
-      cursor: pointer;
-      padding: 4px 6px;
       line-height: 1;
+      cursor: pointer;
+      padding: 4px;
     }
 
     .settings-row {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
-      font-size: 0.95rem;
+      justify-content: space-between;
+      margin-top: 8px;
     }
 
     .settings-label {
-      margin-right: 12px;
+      font-size: 0.95rem;
     }
 
-    .settings-toggle {
-      width: 40px;
-      height: 22px;
-      border-radius: 999px;
-      background: #444;
-      border: 1px solid #666;
+    /* Toggle switch */
+    .switch {
       position: relative;
-      cursor: pointer;
-      flex-shrink: 0;
+      width: 46px;
+      height: 26px;
     }
 
-    .settings-toggle-knob {
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
       position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 16px;
-      height: 16px;
+      cursor: pointer;
+      inset: 0;
+      background-color: #555;
+      transition: 0.2s;
+      border-radius: 999px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      top: 3px;
+      background-color: white;
+      transition: 0.2s;
       border-radius: 50%;
-      background: #ccc;
-      transition: transform 0.15s ease, background 0.15s ease;
     }
 
-    .settings-toggle-input {
-      display: none;
+    .switch input:checked + .slider {
+      background-color: #00c853;
     }
 
-    .settings-toggle-input:checked + .settings-toggle .settings-toggle-knob {
-      transform: translateX(16px);
-      background: #ffffff;
-    }
-
-    .settings-toggle-input:checked + .settings-toggle {
-      background: var(--accent);
-      border-color: var(--accent);
+    .switch input:checked + .slider:before {
+      transform: translateX(20px);
     }
   </style>
 </head>
 <body>
   <div class="wrapper">
 
-    <!-- Top bar: page title + actions -->
+    <!-- Top bar: ICAS Clicker label + Picker / Settings buttons -->
     <div class="top-row">
-      <div class="page-title">Clicker</div>
-      <div class="top-actions">
-        <a href="picker.html" class="nav-link">Picker</a>
-        <button type="button" class="nav-link" onclick="openSettings()">Settings</button>
+      <div class="page-title">ICAS Clicker</div>
+      <div class="top-buttons">
+        <a href="picker.html" class="top-btn">Picker</a>
+        <button type="button" class="top-btn" id="settingsButton">Settings</button>
       </div>
     </div>
 
-    <!-- Presentation title under buttons -->
+    <!-- Presentation name below buttons -->
     <div id="presentationName" class="presentation-name">Loading presentation...</div>
 
     <div id="slideBox" class="slide-box">
       <p id="slideText" class="slide-text"></p>
-      <img
-        id="slideImage"
-        style="display:none; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;"
-      />
+      <img id="slideImage"
+           style="display:none; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;" />
     </div>
 
     <div class="slide-status">
@@ -285,26 +283,18 @@
     <div class="status" id="statusText">Ready</div>
   </div>
 
-  <!-- SETTINGS MODAL -->
+  <!-- Settings modal -->
   <div id="settingsOverlay" class="settings-overlay">
     <div class="settings-card">
       <div class="settings-header">
         <div class="settings-title">Settings</div>
+        <button type="button" class="settings-close" id="settingsCloseButton">×</button>
       </div>
-      <button class="settings-close" onclick="closeSettings()">×</button>
-
       <div class="settings-row">
         <div class="settings-label">Thumbnails only</div>
-        <label style="display:flex; align-items:center;">
-          <input
-            type="checkbox"
-            id="thumbsOnlyToggle"
-            class="settings-toggle-input"
-            onchange="onThumbsToggleChange(this.checked)"
-          />
-          <div class="settings-toggle">
-            <div class="settings-toggle-knob"></div>
-          </div>
+        <label class="switch">
+          <input type="checkbox" id="thumbsOnlyToggle" />
+          <span class="slider"></span>
         </label>
       </div>
     </div>
@@ -312,38 +302,14 @@
 
   <script>
     const BASE_URL = 'https://slides.icas-clicker.work';
-    const SETTINGS_KEY = 'slides_thumbnails_only';
+    const SETTINGS_KEY = 'icas-thumbnails-only';
 
-    let thumbnailsOnly = false;
-
-    function loadSettings() {
-      const stored = localStorage.getItem(SETTINGS_KEY);
-      thumbnailsOnly = stored === 'true';
-      const toggle = document.getElementById('thumbsOnlyToggle');
-      if (toggle) {
-        toggle.checked = thumbnailsOnly;
-      }
+    function getThumbnailsOnly() {
+      return localStorage.getItem(SETTINGS_KEY) === 'true';
     }
 
-    function saveSettings() {
-      localStorage.setItem(SETTINGS_KEY, thumbnailsOnly ? 'true' : 'false');
-    }
-
-    function openSettings() {
-      loadSettings(); // sync UI with current state
-      const overlay = document.getElementById('settingsOverlay');
-      if (overlay) overlay.style.display = 'flex';
-    }
-
-    function closeSettings() {
-      const overlay = document.getElementById('settingsOverlay');
-      if (overlay) overlay.style.display = 'none';
-    }
-
-    function onThumbsToggleChange(checked) {
-      thumbnailsOnly = !!checked;
-      saveSettings();
-      refreshStatus();
+    function setThumbnailsOnly(value) {
+      localStorage.setItem(SETTINGS_KEY, value ? 'true' : 'false');
     }
 
     async function sendCommand(action) {
@@ -386,12 +352,9 @@
           `${BASE_URL}/thumbnail?uuid=${uuid}&index=${index}&t=${Date.now()}`,
           { method: "GET", cache: "no-cache" }
         );
-
         if (!res.ok) throw new Error("Bad thumbnail response");
-
         const blob = await res.blob();
         return URL.createObjectURL(blob);
-
       } catch (err) {
         console.error("Thumbnail error", err);
         return null;
@@ -404,6 +367,8 @@
       const slideImageEl = document.getElementById('slideImage');
       const slideCurrentEl = document.getElementById('slideCurrent');
       const slideTotalEl = document.getElementById('slideTotal');
+
+      const thumbnailsOnly = getThumbnailsOnly();
 
       try {
         const [presRes, indexRes] = await Promise.all([
@@ -424,60 +389,48 @@
         const totalSlides = slides.length;
         const slideIndex = idxData?.presentation_index?.index ?? 0;
         const currentSlide = slides[slideIndex];
-        const currentTextRaw = (currentSlide?.text || "");
-        const currentText = currentTextRaw.trim();
-        const uuid = presData?.presentation?.id?.uuid || null;
+        const rawText = (currentSlide?.text || "").trim();
 
-        function showText(text) {
-          const htmlText = (text || "")
+        const uuid = presData?.presentation?.id?.uuid;
+
+        // Decide whether to show text or thumbnail based on setting + content
+        const shouldShowThumbnail = thumbnailsOnly || rawText === "";
+
+        if (shouldShowThumbnail && uuid) {
+          const imgURL = await loadThumbnail(uuid, slideIndex);
+          if (imgURL) {
+            slideTextEl.style.display = "none";
+            slideImageEl.style.display = "block";
+            slideImageEl.src = imgURL;
+          } else if (!thumbnailsOnly && rawText !== "") {
+            // fallback to text if thumbnail missing but we *do* have text
+            slideImageEl.style.display = "none";
+            slideTextEl.style.display = "block";
+            const htmlText = rawText
+              .replace(/\r\n/g, '\n')
+              .replace(/\r/g, '\n')
+              .split('\n')
+              .map(l => l.trimEnd())
+              .join('<br>');
+            slideTextEl.innerHTML = htmlText;
+            fitSlideText();
+          } else {
+            slideImageEl.style.display = "none";
+            slideTextEl.style.display = "block";
+            slideTextEl.textContent = "(No Text / No Thumbnail)";
+          }
+        } else {
+          // text mode
+          slideImageEl.style.display = "none";
+          slideTextEl.style.display = "block";
+          const htmlText = rawText
             .replace(/\r\n/g, '\n')
             .replace(/\r/g, '\n')
             .split('\n')
             .map(l => l.trimEnd())
             .join('<br>');
-
-          slideImageEl.style.display = "none";
-          slideTextEl.style.display = "block";
           slideTextEl.innerHTML = htmlText;
           fitSlideText();
-        }
-
-        function showFallbackMessage() {
-          slideImageEl.style.display = "none";
-          slideTextEl.style.display = "block";
-          slideTextEl.textContent = "(No Text / No Thumbnail)";
-        }
-
-        if (!currentSlide) {
-          showFallbackMessage();
-        } else {
-          if (thumbnailsOnly && uuid) {
-            const imgURL = await loadThumbnail(uuid, slideIndex);
-            if (imgURL) {
-              slideTextEl.style.display = "none";
-              slideImageEl.style.display = "block";
-              slideImageEl.src = imgURL;
-            } else if (currentText !== "") {
-              showText(currentTextRaw);
-            } else {
-              showFallbackMessage();
-            }
-          } else {
-            if (currentText !== "") {
-              showText(currentTextRaw);
-            } else if (uuid) {
-              const imgURL = await loadThumbnail(uuid, slideIndex);
-              if (imgURL) {
-                slideTextEl.style.display = "none";
-                slideImageEl.style.display = "block";
-                slideImageEl.src = imgURL;
-              } else {
-                showFallbackMessage();
-              }
-            } else {
-              showFallbackMessage();
-            }
-          }
         }
 
         slideCurrentEl.textContent = totalSlides > 0 ? slideIndex + 1 : 0;
@@ -492,8 +445,33 @@
       }
     }
 
+    function openSettings() {
+      const overlay = document.getElementById('settingsOverlay');
+      const toggle = document.getElementById('thumbsOnlyToggle');
+      toggle.checked = getThumbnailsOnly();
+      overlay.style.display = 'flex';
+    }
+
+    function closeSettings() {
+      const overlay = document.getElementById('settingsOverlay');
+      overlay.style.display = 'none';
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
-      loadSettings();
+      // Settings wiring
+      document.getElementById('settingsButton').addEventListener('click', openSettings);
+      document.getElementById('settingsCloseButton').addEventListener('click', closeSettings);
+      document.getElementById('settingsOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'settingsOverlay') closeSettings();
+      });
+
+      const toggle = document.getElementById('thumbsOnlyToggle');
+      toggle.addEventListener('change', () => {
+        setThumbnailsOnly(toggle.checked);
+        refreshStatus();
+      });
+
+      // Initial slide info
       refreshStatus();
       setInterval(refreshStatus, 1000);
       window.addEventListener("resize", fitSlideText);
