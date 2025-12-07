@@ -171,15 +171,15 @@
       min-width: 260px;
       max-width: 340px;
       box-shadow: 0 18px 40px rgba(0,0,0,0.6);
-      position: relative;              /* make card a positioning context */
+      /* no special positioning needed */
     }
     
     .settings-header {
       display: flex;
       align-items: center;
-      justify-content: flex-start;     /* title on left, X is absolutely positioned */
+      justify-content: space-between;  /* title left, X right */
       margin-bottom: 10px;
-      padding-right: 28px;             /* space so title doesn’t run into the X */
+      width: 100%;                     /* stretch across card */
     }
     
     .settings-title {
@@ -194,11 +194,7 @@
       font-size: 1.2rem;
       line-height: 1;
       cursor: pointer;
-      padding: 4px;
-    
-      position: absolute;              /* lock X to top-right of the card */
-      top: 10px;
-      right: 12px;
+      padding: 4px 0 4px 16px;         /* small padding on left so it's not glued to text */
     }
 
     .settings-row {
