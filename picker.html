@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Slide Picker</title>
+  <title>ICAS Picker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -40,11 +40,50 @@
       padding: 16px;
     }
 
+    /* Top bar */
+
     .top-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
+    }
+
+    .page-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--status-grey);
+    }
+
+    .top-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .top-btn {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #ffffff;
+      opacity: 0.85;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #444;
+      background: transparent;
+      white-space: nowrap;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .top-btn:hover {
+      opacity: 1;
+      background: #222;
+    }
+
+    .top-btn:focus {
+      outline: none;
     }
 
     .presentation-name {
@@ -53,23 +92,7 @@
       font-size: 1.4rem;
       font-weight: 700;
       min-height: 1.4em;
-      margin-right: 8px;
-    }
-
-    .back-link {
-      font-size: 0.9rem;
-      color: #ffffff;
-      opacity: 0.8;
-      text-decoration: none;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid #444;
-      white-space: nowrap;
-    }
-
-    .back-link:hover {
-      opacity: 1;
-      background: #222;
+      margin: 4px 0 8px 0;
     }
 
     .slide-status {
@@ -118,7 +141,6 @@
       cursor: default;
     }
 
-    /* White outline for selection feedback */
     .slide-item.selected {
       outline: var(--selected-outline);
       outline-offset: 3px;
@@ -147,7 +169,6 @@
       word-break: break-word;
     }
 
-    /* Thumbnail image inside slide item */
     .slide-thumb {
       margin-top: 6px;
       width: 100%;
@@ -156,40 +177,182 @@
       border-radius: 6px;
     }
 
-     /* Larger thumbnails on bigger screens (iPad / desktop) */
     @media (min-width: 768px) {
       .slide-thumb {
-        max-height: 300px; /* 1.5x compared to phones */
+        max-height: 300px;
       }
+    }
+
+    /* Settings modal */
+
+    .settings-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .settings-card {
+      background: #111111;
+      border-radius: 12px;
+      padding: 16px;
+      min-width: 260px;
+      max-width: 340px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .settings-header {
+      margin-bottom: 12px;
+    }
+
+    .settings-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+
+    .settings-label {
+      font-size: 0.95rem;
+    }
+
+    .settings-footer {
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .settings-close-btn {
+      border: none;
+      background: transparent;
+      color: #ffffff;
+      font-size: 0.95rem;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #444;
+      cursor: pointer;
+    }
+
+    .settings-close-btn:hover {
+      background: #222;
+    }
+
+    .switch {
+      position: relative;
+      width: 46px;
+      height: 26px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #555;
+      transition: 0.2s;
+      border-radius: 999px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      top: 3px;
+      background-color: white;
+      transition: 0.2s;
+      border-radius: 50%;
+    }
+
+    .switch input:checked + .slider {
+      background-color: #00c853;
+    }
+
+    .switch input:checked + .slider:before {
+      transform: translateX(20px);
     }
   </style>
 </head>
 <body>
   <div class="wrapper">
+    <!-- Top bar -->
     <div class="top-row">
-      <div id="presentationName" class="presentation-name">
-        Loading presentation...
+      <div class="page-title">ICAS Picker</div>
+      <div class="top-buttons">
+        <a href="index.html" class="top-btn">Clicker</a>
+        <button type="button" class="top-btn" id="settingsButton">Settings</button>
       </div>
-      <a href="index.html" class="back-link">Clicker</a>
     </div>
 
+    <!-- Presentation name -->
+    <div id="presentationName" class="presentation-name">
+      Loading presentation...
+    </div>
+
+    <!-- Slide status -->
     <div id="statusText" class="slide-status">
       Slide <span id="slideCurrent" class="current">0</span>
       of
       <span id="slideTotal" class="total">0</span>
     </div>
 
+    <!-- Slides list -->
     <div id="slidesContainer" class="slides-list"></div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsOverlay" class="settings-overlay">
+    <div class="settings-card">
+      <div class="settings-header">
+        <div class="settings-title">Settings</div>
+      </div>
+
+      <div class="settings-row">
+        <div class="settings-label">Thumbnails only</div>
+        <label class="switch">
+          <input type="checkbox" id="thumbsOnlyToggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-footer">
+        <button type="button" id="settingsCloseButton" class="settings-close-btn">
+          Close
+        </button>
+      </div>
+    </div>
   </div>
 
   <script>
     const BASE_URL = "https://slides.icas-clicker.work";
+    const SETTINGS_KEY = "icas-thumbnails-only";
 
-    // Cache so thumbnails are only fetched once per slide per presentation
     const thumbCache = {};
     let lastSlidesKey = null;
     let lastUuid = null;
     let lastIndex = null;
+
+    function getThumbnailsOnly() {
+      return localStorage.getItem(SETTINGS_KEY) === "true";
+    }
+
+    function setThumbnailsOnly(value) {
+      localStorage.setItem(SETTINGS_KEY, value ? "true" : "false");
+    }
 
     async function loadThumbnail(uuid, index) {
       const cacheKey = `${uuid}_${index}`;
@@ -215,13 +378,12 @@
       }
     }
 
-    function buildSlidesKey(slides) {
-      // only consider groupName + text so ordering/content changes are detectable
-      const compact = slides.map(s => ({
+    function buildSlidesKey(slides, thumbnailsOnly) {
+      const compact = slides.map((s) => ({
         g: s.groupName || "",
         t: s.text || ""
       }));
-      return JSON.stringify(compact);
+      return JSON.stringify(compact) + "|thumbs=" + (thumbnailsOnly ? "1" : "0");
     }
 
     function updateCurrentHighlight(currentIndex) {
@@ -231,12 +393,11 @@
         const el = children[i];
         el.classList.remove("current");
         el.disabled = false;
-        // keep "selected" if user just tapped it; it will clear next full rebuild
       }
       if (children[currentIndex]) {
         children[currentIndex].classList.add("current");
         children[currentIndex].disabled = true;
-        children[currentIndex].classList.remove("selected"); // remove outline once it becomes current
+        children[currentIndex].classList.remove("selected");
       }
     }
 
@@ -245,6 +406,8 @@
       const container = document.getElementById("slidesContainer");
       const slideCurrentEl = document.getElementById("slideCurrent");
       const slideTotalEl = document.getElementById("slideTotal");
+
+      const thumbnailsOnly = getThumbnailsOnly();
 
       try {
         const [presRes, indexRes] = await Promise.all([
@@ -270,12 +433,12 @@
             ? presData.presentation.id.uuid
             : null;
 
-        // Presentation name
         nameEl.textContent =
-          (presData.presentation && presData.presentation.id && presData.presentation.id.name) ||
+          (presData.presentation &&
+            presData.presentation.id &&
+            presData.presentation.id.name) ||
           "No active presentation";
 
-        // Build flattened slides
         let slides = [];
         if (presData.presentation && Array.isArray(presData.presentation.groups)) {
           presData.presentation.groups.forEach((group) => {
@@ -293,25 +456,24 @@
 
         const totalSlides = slides.length;
         const currentIndex =
-          (idxData.presentation_index && typeof idxData.presentation_index.index === "number")
+          idxData.presentation_index &&
+          typeof idxData.presentation_index.index === "number"
             ? idxData.presentation_index.index
             : 0;
 
         slideCurrentEl.textContent = totalSlides > 0 ? currentIndex + 1 : 0;
         slideTotalEl.textContent = totalSlides;
 
-        const slidesKey = buildSlidesKey(slides);
+        const slidesKey = buildSlidesKey(slides, thumbnailsOnly);
 
-        // If same presentation + same slide contents, just update current highlight
         if (uuid === lastUuid && slidesKey === lastSlidesKey) {
           if (currentIndex !== lastIndex) {
             updateCurrentHighlight(currentIndex);
             lastIndex = currentIndex;
           }
-          return; // Do not rebuild DOM; avoid flicker & reloading thumbnails
+          return;
         }
 
-        // Presentation or slide list changed → rebuild DOM
         lastUuid = uuid;
         lastSlidesKey = slidesKey;
         lastIndex = currentIndex;
@@ -324,14 +486,12 @@
           item.className = "slide-item";
           if (i === currentIndex) item.classList.add("current");
 
-          // Header: slide number + group name
           const header = document.createElement("div");
           header.className = "slide-item-header";
 
           const numSpan = document.createElement("span");
           numSpan.className = "slide-number";
           numSpan.textContent = i + 1;
-
           header.appendChild(numSpan);
 
           if (slide.groupName) {
@@ -343,45 +503,51 @@
 
           item.appendChild(header);
 
-          // Slide text or thumbnail
-          if (slide.text && slide.text.trim() !== "") {
+          const hasText = slide.text && slide.text.trim() !== "";
+
+          if (!thumbnailsOnly && hasText) {
             const textDiv = document.createElement("div");
             textDiv.className = "slide-text";
-
             textDiv.innerHTML = slide.text
               .replace(/\r\n/g, "\n")
               .replace(/\r/g, "\n")
               .split("\n")
               .map((l) => l.trimEnd())
               .join("<br>");
-
             item.appendChild(textDiv);
           } else if (uuid) {
-            // Thumbnail for slides with no text (loaded once from cache/fetch)
             loadThumbnail(uuid, i).then((imgURL) => {
-              if (!imgURL) {
+              if (imgURL) {
+                const img = document.createElement("img");
+                img.src = imgURL;
+                img.className = "slide-thumb";
+                item.appendChild(img);
+              } else if (hasText && !thumbnailsOnly) {
+                const textDiv = document.createElement("div");
+                textDiv.className = "slide-text";
+                textDiv.innerHTML = slide.text
+                  .replace(/\r\n/g, "\n")
+                  .replace(/\r/g, "\n")
+                  .split("\n")
+                  .map((l) => l.trimEnd())
+                  .join("<br>");
+                item.appendChild(textDiv);
+              } else {
                 const fallback = document.createElement("div");
                 fallback.className = "slide-text";
                 fallback.textContent = "(No text / No thumbnail)";
                 item.appendChild(fallback);
-                return;
               }
-              const img = document.createElement("img");
-              img.src = imgURL;
-              img.className = "slide-thumb";
-              item.appendChild(img);
             });
           } else {
             const fallback = document.createElement("div");
             fallback.className = "slide-text";
-            fallback.textContent = "(No text)";
+            fallback.textContent = hasText ? slide.text : "(No text)";
             item.appendChild(fallback);
           }
 
-          // click → focus slide
           if (i !== currentIndex) {
             item.addEventListener("click", () => {
-              // visual feedback BEFORE ProPresenter switches
               item.classList.add("selected");
               focusSlide(i);
             });
@@ -405,11 +571,40 @@
       } catch (err) {
         console.error("Error focusing slide:", err);
       }
-      // allow outline to remain for a moment; next fetchStatus handles current highlight
       setTimeout(fetchStatus, 400);
     }
 
+    function openSettings() {
+      const overlay = document.getElementById("settingsOverlay");
+      const toggle = document.getElementById("thumbsOnlyToggle");
+      toggle.checked = getThumbnailsOnly();
+      overlay.style.display = "flex";
+    }
+
+    function closeSettings() {
+      const overlay = document.getElementById("settingsOverlay");
+      overlay.style.display = "none";
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
+      document
+        .getElementById("settingsButton")
+        .addEventListener("click", openSettings);
+      document
+        .getElementById("settingsCloseButton")
+        .addEventListener("click", closeSettings);
+      document
+        .getElementById("settingsOverlay")
+        .addEventListener("click", (e) => {
+          if (e.target.id === "settingsOverlay") closeSettings();
+        });
+
+      const toggle = document.getElementById("thumbsOnlyToggle");
+      toggle.addEventListener("change", () => {
+        setThumbnailsOnly(toggle.checked);
+        fetchStatus();
+      });
+
       fetchStatus();
       setInterval(fetchStatus, 1000);
     });
