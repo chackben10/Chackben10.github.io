@@ -181,10 +181,13 @@
 
     .controls-cell {
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
+      flex-direction: column;
       gap: 4px;
-      justify-content: flex-start;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 4px;
     }
 
     .small-btn {
@@ -201,11 +204,16 @@
       background: #eeeeee;
     }
 
+    .small-btn-half {
+      flex: 1 1 0;
+      text-align: center;
+    }
+
     .custom-amount {
-      width: 60px;
+      width: 100%;
       border-radius: 999px;
       border: 1px solid #cccccc;
-      padding: 3px 6px;
+      padding: 3px 8px;
       font-size: 0.8rem;
     }
 
@@ -262,9 +270,6 @@
       .small-btn {
         font-size: 0.75rem;
       }
-      .custom-amount {
-        width: 54px;
-      }
     }
   </style>
 </head>
@@ -279,7 +284,7 @@
       </div>
     </div>
 
-    <!-- Section title (same style as presentation name) -->
+    <!-- Section title -->
     <div class="presentation-name">
       Scoreboard
     </div>
@@ -297,7 +302,7 @@
       </div>
     </div>
 
-    <!-- Add row button (uses same big button style as clicker) -->
+    <!-- Add row button -->
     <div class="buttons-single">
       <button type="button" class="btn-add" id="addRowBtn">Add Row</button>
     </div>
@@ -393,7 +398,6 @@
         saveToStorage();
         setStatus("Added row");
 
-        // Focus new row name input
         requestAnimationFrame(() => {
           const input = scoreRowsEl.querySelector(
             `.score-row[data-id="${id}"] .name-input`
@@ -425,6 +429,16 @@
         renderRows();
         saveToStorage();
         setStatus(delta > 0 ? `+${delta}` : `${delta}`);
+      }
+
+      function applyCustomDelta(id, inputEl) {
+        const val = Number(inputEl.value);
+        if (!Number.isFinite(val) || val === 0) {
+          inputEl.value = "";
+          return;
+        }
+        updateRowScore(id, val);
+        inputEl.value = "";
       }
 
       function renderRows() {
@@ -469,15 +483,21 @@
           const controlsCell = document.createElement("div");
           controlsCell.className = "controls-cell";
 
+          const controlsRow = document.createElement("div");
+          controlsRow.className = "controls-row";
+
           const plusBtn = document.createElement("button");
           plusBtn.type = "button";
-          plusBtn.className = "small-btn";
+          plusBtn.className = "small-btn small-btn-half";
           plusBtn.textContent = "+1";
 
           const minusBtn = document.createElement("button");
           minusBtn.type = "button";
-          minusBtn.className = "small-btn";
+          minusBtn.className = "small-btn small-btn-half";
           minusBtn.textContent = "-1";
+
+          controlsRow.appendChild(plusBtn);
+          controlsRow.appendChild(minusBtn);
 
           const customInput = document.createElement("input");
           customInput.type = "number";
@@ -485,15 +505,8 @@
           customInput.placeholder = "±N";
           customInput.step = "1";
 
-          const applyBtn = document.createElement("button");
-          applyBtn.type = "button";
-          applyBtn.className = "small-btn";
-          applyBtn.textContent = "Apply";
-
-          controlsCell.appendChild(plusBtn);
-          controlsCell.appendChild(minusBtn);
+          controlsCell.appendChild(controlsRow);
           controlsCell.appendChild(customInput);
-          controlsCell.appendChild(applyBtn);
 
           rowEl.appendChild(nameCell);
           rowEl.appendChild(scoreCell);
@@ -518,19 +531,15 @@
             updateRowScore(row.id, -1);
           });
 
-          applyBtn.addEventListener("click", () => {
-            const val = Number(customInput.value);
-            if (!Number.isFinite(val) || val === 0) return;
-            updateRowScore(row.id, val);
-            customInput.value = "";
+          // auto-apply custom value on blur; Enter just triggers blur
+          customInput.addEventListener("blur", () => {
+            applyCustomDelta(row.id, customInput);
           });
 
           customInput.addEventListener("keydown", (e) => {
             if (e.key === "Enter") {
-              const val = Number(customInput.value);
-              if (!Number.isFinite(val) || val === 0) return;
-              updateRowScore(row.id, val);
-              customInput.value = "";
+              e.preventDefault();
+              customInput.blur();
             }
           });
 
