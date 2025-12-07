@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ICAS Score</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #000000;
+      --fg: #ffffff;
+      --accent: #00c2ff;
+      --danger: #ff4b4b;
+      --btn-bg: #1a1a1a;
+      --btn-bg-hover: #2a2a2a;
+      --border-subtle: #333333;
+      --input-bg: #111111;
+      --input-border: #444444;
+      --score-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--score-font);
+    }
+
+    body {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 900px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .top-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border-subtle);
+      background: var(--btn-bg);
+      color: var(--fg);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, transform 0.05s ease, border-color 0.15s ease, opacity 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .btn:hover {
+      background: var(--btn-bg-hover);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-accent {
+      border-color: var(--accent);
+    }
+
+    .btn-danger {
+      border-color: var(--danger);
+      color: #ffe9e9;
+    }
+
+    .btn-ghost {
+      background: transparent;
+    }
+
+    .btn[disabled] {
+      opacity: 0.4;
+      cursor: default;
+      transform: none;
+    }
+
+    .score-container {
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 12px;
+      background: radial-gradient(circle at top, #141414 0, #050505 60%);
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .score-header-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 1.2fr) minmax(80px, 0.8fr) minmax(240px, 1.6fr);
+      gap: 8px;
+      padding: 4px 8px 6px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.7;
+    }
+
+    .score-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 4px;
+    }
+
+    .score-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 1.2fr) minmax(80px, 0.8fr) minmax(240px, 1.6fr);
+      gap: 8px;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid transparent;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .score-row:nth-child(odd) {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .score-row:hover {
+      border-color: var(--border-subtle);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .name-input {
+      flex: 1 1 auto;
+      min-width: 0;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 999px;
+      padding: 6px 9px;
+      color: var(--fg);
+      font-size: 0.9rem;
+    }
+
+    .name-input:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+      border-color: transparent;
+    }
+
+    .rename-btn {
+      flex: 0 0 auto;
+      padding-inline: 10px;
+      font-size: 0.8rem;
+    }
+
+    .score-value {
+      font-variant-numeric: tabular-nums;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      display: inline-block;
+      min-width: 48px;
+    }
+
+    .score-cell {
+      text-align: center;
+    }
+
+    .controls-cell {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-start;
+    }
+
+    .delta-btn {
+      padding-inline: 10px;
+      font-size: 0.85rem;
+    }
+
+    .custom-amount {
+      width: 80px;
+      max-width: 100px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 999px;
+      padding: 6px 9px;
+      color: var(--fg);
+      font-size: 0.85rem;
+    }
+
+    .custom-amount:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+      border-color: transparent;
+    }
+
+    .apply-btn {
+      font-size: 0.8rem;
+      padding-inline: 10px;
+    }
+
+    .empty-state {
+      padding: 12px 8px 6px;
+      font-size: 0.9rem;
+      opacity: 0.6;
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 10px;
+      }
+
+      .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .score-header-row {
+        display: none;
+      }
+
+      .score-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+
+      .score-cell {
+        text-align: left;
+      }
+
+      .score-value {
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="top-bar">
+      <div class="title">ICAS Score</div>
+      <div class="top-buttons">
+        <button id="undo-btn" class="btn btn-ghost" disabled>↩ Undo</button>
+        <button id="clear-btn" class="btn btn-danger">🗑 Clear</button>
+        <button id="add-row-btn" class="btn btn-accent">＋ Add Row</button>
+      </div>
+    </div>
+
+    <div class="score-container">
+      <div class="score-header-row">
+        <div>Name</div>
+        <div>Score</div>
+        <div>Controls</div>
+      </div>
+      <div id="score-rows" class="score-rows"></div>
+      <div id="empty-state" class="empty-state">
+        No rows yet. Click <strong>＋ Add Row</strong> to get started.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = 'icas-scoreboard-state-v1';
+
+      let rows = [];
+      let history = [];
+
+      const scoreRowsEl = document.getElementById('score-rows');
+      const emptyStateEl = document.getElementById('empty-state');
+      const undoBtn = document.getElementById('undo-btn');
+      const clearBtn = document.getElementById('clear-btn');
+      const addRowBtn = document.getElementById('add-row-btn');
+
+      function saveToStorage() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+        } catch (e) {
+          // ignore storage errors
+        }
+      }
+
+      function loadFromStorage() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            rows = parsed.map(r => ({
+              id: r.id || String(Math.random()),
+              name: typeof r.name === 'string' ? r.name : '',
+              score: typeof r.score === 'number' ? r.score : 0
+            }));
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      }
+
+      function pushHistory() {
+        const snapshot = JSON.parse(JSON.stringify(rows));
+        history.push(snapshot);
+        updateUndoButton();
+      }
+
+      function updateUndoButton() {
+        undoBtn.disabled = history.length === 0;
+      }
+
+      function undoLast() {
+        if (!history.length) return;
+        rows = history.pop();
+        updateUndoButton();
+        renderRows();
+        saveToStorage();
+      }
+
+      function clearRows() {
+        if (!rows.length) return;
+        pushHistory();
+        rows = [];
+        renderRows();
+        saveToStorage();
+      }
+
+      function addRow() {
+        pushHistory();
+        const id =
+          Date.now().toString(36) +
+          Math.random().toString(16).slice(2);
+        rows.push({ id, name: '', score: 0 });
+        renderRows();
+        saveToStorage();
+        // focus the new row's name input
+        requestAnimationFrame(() => {
+          const input = scoreRowsEl.querySelector(
+            `.score-row[data-id="${id}"] .name-input`
+          );
+          if (input) {
+            input.focus();
+            input.select();
+          }
+        });
+      }
+
+      function updateRowName(id, newName) {
+        const row = rows.find(r => r.id === id);
+        if (!row) return;
+        const trimmed = newName.trim();
+        if (row.name === trimmed) return;
+        pushHistory();
+        row.name = trimmed;
+        renderRows();
+        saveToStorage();
+      }
+
+      function updateRowScore(id, delta) {
+        const row = rows.find(r => r.id === id);
+        if (!row || !Number.isFinite(delta) || delta === 0) return;
+        pushHistory();
+        row.score += delta;
+        renderRows();
+        saveToStorage();
+      }
+
+      function renderRows() {
+        scoreRowsEl.innerHTML = '';
+        if (!rows.length) {
+          emptyStateEl.style.display = 'block';
+          return;
+        }
+        emptyStateEl.style.display = 'none';
+
+        for (const row of rows) {
+          const rowEl = document.createElement('div');
+          rowEl.className = 'score-row';
+          rowEl.dataset.id = row.id;
+
+          // Name cell
+          const nameCell = document.createElement('div');
+          nameCell.className = 'name-cell';
+
+          const nameInput = document.createElement('input');
+          nameInput.type = 'text';
+          nameInput.className = 'name-input';
+          nameInput.value = row.name || '';
+          nameInput.placeholder = 'Name';
+
+          const renameBtn = document.createElement('button');
+          renameBtn.className = 'btn rename-btn btn-ghost';
+          renameBtn.textContent = 'Rename';
+
+          nameCell.appendChild(nameInput);
+          nameCell.appendChild(renameBtn);
+
+          // Score cell
+          const scoreCell = document.createElement('div');
+          scoreCell.className = 'score-cell';
+          const scoreSpan = document.createElement('span');
+          scoreSpan.className = 'score-value';
+          scoreSpan.textContent = String(row.score);
+          scoreCell.appendChild(scoreSpan);
+
+          // Controls cell
+          const controlsCell = document.createElement('div');
+          controlsCell.className = 'controls-cell';
+
+          const plusBtn = document.createElement('button');
+          plusBtn.className = 'btn delta-btn btn-accent';
+          plusBtn.textContent = '+1';
+
+          const minusBtn = document.createElement('button');
+          minusBtn.className = 'btn delta-btn btn-ghost';
+          minusBtn.textContent = '−1';
+
+          const customInput = document.createElement('input');
+          customInput.type = 'number';
+          customInput.className = 'custom-amount';
+          customInput.placeholder = '±N';
+          customInput.step = '1';
+
+          const applyBtn = document.createElement('button');
+          applyBtn.className = 'btn apply-btn btn-ghost';
+          applyBtn.textContent = 'Apply';
+
+          controlsCell.appendChild(plusBtn);
+          controlsCell.appendChild(minusBtn);
+          controlsCell.appendChild(customInput);
+          controlsCell.appendChild(applyBtn);
+
+          rowEl.appendChild(nameCell);
+          rowEl.appendChild(scoreCell);
+          rowEl.appendChild(controlsCell);
+
+          // Wiring events
+          renameBtn.addEventListener('click', () => {
+            updateRowName(row.id, nameInput.value);
+          });
+
+          nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              updateRowName(row.id, nameInput.value);
+            }
+          });
+
+          plusBtn.addEventListener('click', () => {
+            updateRowScore(row.id, 1);
+          });
+
+          minusBtn.addEventListener('click', () => {
+            updateRowScore(row.id, -1);
+          });
+
+          applyBtn.addEventListener('click', () => {
+            const val = Number(customInput.value);
+            if (!Number.isFinite(val) || val === 0) return;
+            updateRowScore(row.id, val);
+            customInput.value = '';
+          });
+
+          customInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              const val = Number(customInput.value);
+              if (!Number.isFinite(val) || val === 0) return;
+              updateRowScore(row.id, val);
+              customInput.value = '';
+            }
+          });
+
+          scoreRowsEl.appendChild(rowEl);
+        }
+      }
+
+      // Hook up top buttons
+      undoBtn.addEventListener('click', undoLast);
+      clearBtn.addEventListener('click', () => {
+        const hasRows = rows.length > 0;
+        if (!hasRows) return;
+        if (confirm('Clear all rows and scores?')) {
+          clearRows();
+        }
+      });
+      addRowBtn.addEventListener('click', addRow);
+
+      // Initialize
+      loadFromStorage();
+      renderRows();
+      updateUndoButton();
+    })();
+  </script>
+</body>
+</html>
