@@ -15,17 +15,12 @@
       --status-grey: #888888;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background: var(--bg);
       color: #ffffff;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -39,7 +34,7 @@
       padding: 16px;
     }
 
-    /* Top bar */
+    /* Top Bar */
 
     .top-row {
       display: flex;
@@ -64,40 +59,28 @@
       font-weight: 500;
       color: #ffffff;
       opacity: 0.85;
-      text-decoration: none;
-      padding: 6px 12px;
       border-radius: 999px;
       border: 1px solid #444;
+      padding: 6px 12px;
       background: transparent;
-      white-space: nowrap;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
     }
 
-    .top-btn:hover {
-      opacity: 1;
-      background: #222;
-    }
+    .top-btn:hover { opacity: 1; background: #222; }
 
-    .top-btn:focus {
-      outline: none;
-    }
+    /* Section Label */
 
     .presentation-name {
       text-align: left;
       color: var(--title-color);
       font-size: 1.3rem;
       font-weight: 700;
-      min-height: 1.4em;
-      margin: 4px 0 8px 0;
+      margin: 4px 0 8px;
     }
 
-    /* Score box */
+    /* Score Box */
 
     .score-box {
-      margin: 0 auto 12px;
       background: #ffffff;
       color: #000000;
       border-radius: 8px;
@@ -114,63 +97,39 @@
       grid-template-columns: 1.3fr 0.7fr 1.4fr;
       gap: 6px;
       font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
       color: #666;
-      border-bottom: 1px solid #e0e0e0;
       padding-bottom: 4px;
-      margin-bottom: 2px;
+      border-bottom: 1px solid #e0e0e0;
+      text-transform: uppercase;
     }
 
-    .score-rows {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+    .score-rows { display: flex; flex-direction: column; gap: 4px; }
 
     .score-row {
       display: grid;
       grid-template-columns: 1.3fr 0.7fr 1.4fr;
       gap: 6px;
-      align-items: center;
       padding: 5px 4px;
       border-radius: 6px;
       background: #f7f7f7;
     }
 
-    .score-row:nth-child(odd) {
-      background: #f0f0f0;
-    }
+    .score-row:nth-child(odd) { background: #f0f0f0; }
 
-    .name-cell {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      min-width: 0;
-    }
+    /* Name Input */
+
+    .name-cell { display: flex; align-items: center; min-width: 0; }
 
     .name-input {
-      flex: 1 1 auto;
-      min-width: 0;
+      flex: 1;
       border-radius: 999px;
       border: 1px solid #cccccc;
       padding: 4px 8px;
       font-size: 0.85rem;
+      width: 100%;
     }
 
-    .rename-btn {
-      border-radius: 999px;
-      border: 1px solid #bbbbbb;
-      background: #ffffff;
-      font-size: 0.75rem;
-      padding: 4px 8px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .rename-btn:hover {
-      background: #eeeeee;
-    }
+    /* Score Cell */
 
     .score-cell {
       text-align: center;
@@ -179,35 +138,24 @@
       font-weight: 600;
     }
 
-    .controls-cell {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+    /* Controls */
 
-    .controls-row {
-      display: flex;
-      gap: 4px;
-    }
+    .controls-cell { display: flex; flex-direction: column; gap: 4px; }
+
+    .controls-row { display: flex; gap: 4px; }
 
     .small-btn {
+      flex: 1;
       border-radius: 999px;
       border: 1px solid #bbbbbb;
       background: #ffffff;
       font-size: 0.8rem;
       padding: 3px 8px;
       cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .small-btn:hover {
-      background: #eeeeee;
-    }
-
-    .small-btn-half {
-      flex: 1 1 0;
       text-align: center;
     }
+
+    .small-btn:hover { background: #eeeeee; }
 
     .custom-amount {
       width: 100%;
@@ -217,358 +165,258 @@
       font-size: 0.8rem;
     }
 
-    .empty-state {
-      font-size: 0.85rem;
-      color: #777;
-      padding: 4px 2px 2px;
-    }
+    .buttons-single { margin-top: 6px; }
 
-    /* Add row button reusing clicker button style */
-
-    .buttons-single {
-      margin-top: 4px;
-      display: flex;
-      justify-content: center;
-    }
-
-    button {
+    button.btn-add {
+      width: 100%;
+      background: var(--btn-next-bg);
+      color: var(--btn-next-text);
       border: none;
       border-radius: 12px;
       padding: 16px 12px;
       font-size: 1.3rem;
       font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.07s ease, filter 0.07s ease;
-      width: 100%;
-    }
-
-    button:active {
-      transform: scale(0.97);
-      filter: brightness(0.9);
-    }
-
-    .btn-add {
-      background: var(--btn-next-bg);
-      color: var(--btn-next-text);
     }
 
     .status {
       text-align: center;
       margin-top: 8px;
-      font-size: 0.9rem;
       opacity: 0.8;
-      min-height: 1.1em;
-    }
-
-    @media (max-width: 480px) {
-      .score-header {
-        font-size: 0.7rem;
-      }
-      .name-input {
-        font-size: 0.8rem;
-      }
-      .small-btn {
-        font-size: 0.75rem;
-      }
     }
   </style>
 </head>
 <body>
   <div class="wrapper">
+
     <!-- Top bar -->
     <div class="top-row">
       <div class="page-title">ICAS Score</div>
       <div class="top-buttons">
-        <button type="button" class="top-btn" id="undoBtn">Undo</button>
-        <button type="button" class="top-btn" id="clearBtn">Clear</button>
+        <button class="top-btn" id="undoBtn">Undo</button>
+        <button class="top-btn" id="clearBtn">Clear</button>
       </div>
     </div>
 
-    <!-- Section title -->
-    <div class="presentation-name">
-      Scoreboard
-    </div>
+    <div class="presentation-name">Scoreboard</div>
 
-    <!-- Scoreboard card -->
+    <!-- Score container -->
     <div class="score-box">
       <div class="score-header">
         <div>Name</div>
         <div>Score</div>
         <div>Controls</div>
       </div>
+
       <div id="scoreRows" class="score-rows"></div>
-      <div id="emptyState" class="empty-state">
-        No rows yet. Use the button below to add one.
+
+      <div id="emptyState" class="empty-state" style="color:#777;">
+        No rows yet. Add one below.
       </div>
     </div>
 
     <!-- Add row button -->
     <div class="buttons-single">
-      <button type="button" class="btn-add" id="addRowBtn">Add Row</button>
+      <button id="addRowBtn" class="btn-add">Add Row</button>
     </div>
 
-    <div class="status" id="statusText">Ready</div>
+    <div id="statusText" class="status">Ready</div>
   </div>
 
-  <script>
-    (function () {
-      const STORAGE_KEY = "icas-scoreboard-state-v1";
+<script>
+(function () {
+  const STORAGE_KEY = "icas-scoreboard-state-v1";
+  let rows = [];
+  let history = [];
 
-      let rows = [];
-      let history = [];
+  const scoreRowsEl = document.getElementById("scoreRows");
+  const emptyStateEl = document.getElementById("emptyState");
+  const undoBtn = document.getElementById("undoBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const addRowBtn = document.getElementById("addRowBtn");
+  const statusText = document.getElementById("statusText");
 
-      const scoreRowsEl = document.getElementById("scoreRows");
-      const emptyStateEl = document.getElementById("emptyState");
-      const undoBtn = document.getElementById("undoBtn");
-      const clearBtn = document.getElementById("clearBtn");
-      const addRowBtn = document.getElementById("addRowBtn");
-      const statusText = document.getElementById("statusText");
+  function setStatus(msg) {
+    statusText.textContent = msg;
+    setTimeout(() => {
+      if (statusText.textContent === msg) statusText.textContent = "Ready";
+    }, 900);
+  }
 
-      function setStatus(msg, timeoutMs = 900) {
-        statusText.textContent = msg;
-        if (timeoutMs) {
-          setTimeout(() => {
-            if (statusText.textContent === msg) {
-              statusText.textContent = "Ready";
-            }
-          }, timeoutMs);
-        }
-      }
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+  }
 
-      function saveToStorage() {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
-        } catch (e) {
-          // ignore
-        }
-      }
+  function load() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) rows = parsed;
+    } catch {}
+  }
 
-      function loadFromStorage() {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw) return;
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            rows = parsed.map((r) => ({
-              id: r.id || String(Math.random()),
-              name: typeof r.name === "string" ? r.name : "",
-              score: typeof r.score === "number" ? r.score : 0,
-            }));
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
+  function pushHistory() {
+    history.push(JSON.parse(JSON.stringify(rows)));
+    undoBtn.disabled = history.length === 0;
+  }
 
-      function pushHistory() {
-        const snapshot = JSON.parse(JSON.stringify(rows));
-        history.push(snapshot);
-        updateUndoButton();
-      }
+  function undo() {
+    if (!history.length) return;
+    rows = history.pop();
+    undoBtn.disabled = history.length === 0;
+    render();
+    save();
+    setStatus("Undo");
+  }
 
-      function updateUndoButton() {
-        undoBtn.disabled = history.length === 0;
-        undoBtn.style.opacity = history.length === 0 ? 0.5 : 0.85;
-      }
+  function clearAll() {
+    if (!rows.length) return;
+    if (!confirm("Clear all rows?")) return;
+    pushHistory();
+    rows = [];
+    render();
+    save();
+    setStatus("Cleared");
+  }
 
-      function undoLast() {
-        if (!history.length) return;
-        rows = history.pop();
-        updateUndoButton();
-        renderRows();
-        saveToStorage();
-        setStatus("Undid last action");
-      }
+  function addRow() {
+    pushHistory();
+    rows.push({
+      id: Date.now().toString(36) + Math.random().toString(16),
+      name: "",
+      score: 0,
+    });
+    render();
+    save();
+    setStatus("Added row");
+  }
 
-      function clearRows() {
-        if (!rows.length) return;
-        pushHistory();
-        rows = [];
-        renderRows();
-        saveToStorage();
-        setStatus("Cleared all rows");
-      }
+  function updateName(id, newName) {
+    const row = rows.find(r => r.id === id);
+    if (!row) return;
+    const cleaned = newName.trim();
+    if (row.name === cleaned) return;
+    pushHistory();
+    row.name = cleaned;
+    render();
+    save();
+    setStatus("Name updated");
+  }
 
-      function addRow() {
-        pushHistory();
-        const id =
-          Date.now().toString(36) + Math.random().toString(16).slice(2);
-        rows.push({ id, name: "", score: 0 });
-        renderRows();
-        saveToStorage();
-        setStatus("Added row");
+  function updateScore(id, delta) {
+    const row = rows.find(r => r.id === id);
+    if (!row) return;
+    pushHistory();
+    row.score += delta;
+    render();
+    save();
+    setStatus(delta > 0 ? `+${delta}` : `${delta}`);
+  }
 
-        requestAnimationFrame(() => {
-          const input = scoreRowsEl.querySelector(
-            `.score-row[data-id="${id}"] .name-input`
-          );
-          if (input) {
-            input.focus();
-            input.select();
-          }
-        });
-      }
+  function applyCustom(id, inputEl) {
+    const val = Number(inputEl.value);
+    if (!val) { inputEl.value = ""; return; }
+    updateScore(id, val);
+    inputEl.value = "";
+  }
 
-      function updateRowName(id, newName) {
-        const row = rows.find((r) => r.id === id);
-        if (!row) return;
-        const trimmed = newName.trim();
-        if (row.name === trimmed) return;
-        pushHistory();
-        row.name = trimmed;
-        renderRows();
-        saveToStorage();
-        setStatus("Renamed row");
-      }
+  function render() {
+    scoreRowsEl.innerHTML = "";
 
-      function updateRowScore(id, delta) {
-        const row = rows.find((r) => r.id === id);
-        if (!row || !Number.isFinite(delta) || delta === 0) return;
-        pushHistory();
-        row.score += delta;
-        renderRows();
-        saveToStorage();
-        setStatus(delta > 0 ? `+${delta}` : `${delta}`);
-      }
+    if (!rows.length) {
+      emptyStateEl.style.display = "block";
+      return;
+    }
+    emptyStateEl.style.display = "none";
 
-      function applyCustomDelta(id, inputEl) {
-        const val = Number(inputEl.value);
-        if (!Number.isFinite(val) || val === 0) {
-          inputEl.value = "";
-          return;
-        }
-        updateRowScore(id, val);
-        inputEl.value = "";
-      }
+    rows.forEach(row => {
+      const rowEl = document.createElement("div");
+      rowEl.className = "score-row";
+      rowEl.dataset.id = row.id;
 
-      function renderRows() {
-        scoreRowsEl.innerHTML = "";
+      /* NAME CELL */
 
-        if (!rows.length) {
-          emptyStateEl.style.display = "block";
-          return;
-        } else {
-          emptyStateEl.style.display = "none";
-        }
+      const nameCell = document.createElement("div");
+      nameCell.className = "name-cell";
 
-        for (const row of rows) {
-          const rowEl = document.createElement("div");
-          rowEl.className = "score-row";
-          rowEl.dataset.id = row.id;
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.className = "name-input";
+      nameInput.value = row.name;
+      nameInput.placeholder = "Name";
 
-          // Name cell
-          const nameCell = document.createElement("div");
-          nameCell.className = "name-cell";
-
-          const nameInput = document.createElement("input");
-          nameInput.type = "text";
-          nameInput.className = "name-input";
-          nameInput.value = row.name || "";
-          nameInput.placeholder = "Name";
-
-          const renameBtn = document.createElement("button");
-          renameBtn.type = "button";
-          renameBtn.className = "rename-btn";
-          renameBtn.textContent = "Save";
-
-          nameCell.appendChild(nameInput);
-          nameCell.appendChild(renameBtn);
-
-          // Score cell
-          const scoreCell = document.createElement("div");
-          scoreCell.className = "score-cell";
-          scoreCell.textContent = String(row.score);
-
-          // Controls cell
-          const controlsCell = document.createElement("div");
-          controlsCell.className = "controls-cell";
-
-          const controlsRow = document.createElement("div");
-          controlsRow.className = "controls-row";
-
-          const plusBtn = document.createElement("button");
-          plusBtn.type = "button";
-          plusBtn.className = "small-btn small-btn-half";
-          plusBtn.textContent = "+1";
-
-          const minusBtn = document.createElement("button");
-          minusBtn.type = "button";
-          minusBtn.className = "small-btn small-btn-half";
-          minusBtn.textContent = "-1";
-
-          controlsRow.appendChild(plusBtn);
-          controlsRow.appendChild(minusBtn);
-
-          const customInput = document.createElement("input");
-          customInput.type = "number";
-          customInput.className = "custom-amount";
-          customInput.placeholder = "±N";
-          customInput.step = "1";
-
-          controlsCell.appendChild(controlsRow);
-          controlsCell.appendChild(customInput);
-
-          rowEl.appendChild(nameCell);
-          rowEl.appendChild(scoreCell);
-          rowEl.appendChild(controlsCell);
-
-          // Events: name box (auto-apply on blur + Enter)
-          renameBtn.addEventListener("click", () => {
-            updateRowName(row.id, nameInput.value);
-          });
-
-          nameInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              nameInput.blur(); // blur will trigger updateRowName
-            }
-          });
-
-          nameInput.addEventListener("blur", () => {
-            updateRowName(row.id, nameInput.value);
-          });
-
-          // +1 / -1
-          plusBtn.addEventListener("click", () => {
-            updateRowScore(row.id, 1);
-          });
-
-          minusBtn.addEventListener("click", () => {
-            updateRowScore(row.id, -1);
-          });
-
-          // custom delta: auto-apply on blur; Enter triggers blur
-          customInput.addEventListener("blur", () => {
-            applyCustomDelta(row.id, customInput);
-          });
-
-          customInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              customInput.blur();
-            }
-          });
-
-          scoreRowsEl.appendChild(rowEl);
-        }
-      }
-
-      // Hook up top + add buttons
-      undoBtn.addEventListener("click", undoLast);
-      clearBtn.addEventListener("click", () => {
-        if (!rows.length) return;
-        if (confirm("Clear all rows and scores?")) {
-          clearRows();
+      // Auto-apply rename on Enter or blur
+      nameInput.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          nameInput.blur();
         }
       });
-      addRowBtn.addEventListener("click", addRow);
+      nameInput.addEventListener("blur", () => {
+        updateName(row.id, nameInput.value);
+      });
 
-      // Init
-      loadFromStorage();
-      renderRows();
-      updateUndoButton();
-      setStatus("Ready");
-    })();
-  </script>
+      nameCell.appendChild(nameInput);
+
+      /* SCORE CELL */
+
+      const scoreCell = document.createElement("div");
+      scoreCell.className = "score-cell";
+      scoreCell.textContent = row.score;
+
+      /* CONTROLS CELL */
+
+      const controlsCell = document.createElement("div");
+      controlsCell.className = "controls-cell";
+
+      const rowBtns = document.createElement("div");
+      rowBtns.className = "controls-row";
+
+      const plusBtn = document.createElement("button");
+      plusBtn.className = "small-btn";
+      plusBtn.textContent = "+1";
+      plusBtn.onclick = () => updateScore(row.id, 1);
+
+      const minusBtn = document.createElement("button");
+      minusBtn.className = "small-btn";
+      minusBtn.textContent = "-1";
+      minusBtn.onclick = () => updateScore(row.id, -1);
+
+      rowBtns.appendChild(plusBtn);
+      rowBtns.appendChild(minusBtn);
+
+      const customInput = document.createElement("input");
+      customInput.type = "number";
+      customInput.className = "custom-amount";
+      customInput.placeholder = "±N";
+      customInput.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          customInput.blur();
+        }
+      });
+      customInput.addEventListener("blur", () => applyCustom(row.id, customInput));
+
+      controlsCell.appendChild(rowBtns);
+      controlsCell.appendChild(customInput);
+
+      rowEl.appendChild(nameCell);
+      rowEl.appendChild(scoreCell);
+      rowEl.appendChild(controlsCell);
+
+      scoreRowsEl.appendChild(rowEl);
+    });
+  }
+
+  // Top bar buttons
+  undoBtn.onclick = undo;
+  clearBtn.onclick = clearAll;
+  addRowBtn.onclick = addRow;
+
+  load();
+  render();
+})();
+</script>
+
 </body>
 </html>
