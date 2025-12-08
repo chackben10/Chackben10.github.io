@@ -4,29 +4,69 @@
   <meta charset="UTF-8" />
   <title>ICAS Presentation Clicker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
+    /* -----------------------------------------------------------
+       LIGHT / DARK / SYSTEM THEME VARIABLES
+       ----------------------------------------------------------- */
+
     :root {
-      --bg: #000000;
+      /* Default: LIGHT MODE */
+      --bg: #f2f2f7;
+      --text: #1a1a1a;
+
+      --slide-bg: #ffffff;
+      --slide-bg-current: #e8e8e8;
+
+      --slide-text: #1a1a1a;
+      --slide-text-current: #000000;
+
+      --border: #cccccc;
       --title-color: #ff5252;
-      --status-grey: #888888;
+
+      --btn-bg: #ffffff;
+      --btn-text: #1a1a1a;
+      --btn-border: #cccccc;
+
+      --modal-bg: #ffffff;
+      --modal-text: #1a1a1a;
+
+      --selected-outline: 3px solid #000000;
+    }
+
+    :root.dark {
+      --bg: #000000;
+      --text: #ffffff;
+
       --slide-bg: #333333;
       --slide-bg-current: #ffffff;
+
       --slide-text: #f0f0f0;
       --slide-text-current: #000000;
+
+      --border: #444444;
+      --title-color: #ff5252;
+
+      --btn-bg: transparent;
+      --btn-text: #ffffff;
+      --btn-border: #444444;
+
+      --modal-bg: #111111;
+      --modal-text: #ffffff;
+
       --selected-outline: 3px solid white;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    /* -----------------------------------------------------------
+       GENERAL PAGE LAYOUT
+       ----------------------------------------------------------- */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background: var(--bg);
-      color: #ffffff;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -34,13 +74,8 @@
       padding-top: 12px;
     }
 
-    .wrapper {
-      width: 100%;
-      max-width: 640px;
-      padding: 16px;
-    }
+    .wrapper { width: 100%; max-width: 640px; padding: 16px; }
 
-    /* Top bar */
     .top-row {
       display: flex;
       justify-content: space-between;
@@ -51,88 +86,55 @@
     .page-title {
       font-size: 1.15rem;
       font-weight: 600;
-      color: var(--status-grey);
-    }
-
-    .top-buttons {
-      display: flex;
-      gap: 8px;
+      color: var(--text);
+      opacity: 0.8;
     }
 
     .top-btn {
       font-size: 0.9rem;
       font-weight: 500;
-      color: #ffffff;
-      opacity: 0.85;
-      text-decoration: none;
       padding: 6px 12px;
       border-radius: 999px;
-      border: 1px solid #444;
-      background: transparent;
-      white-space: nowrap;
+      border: 1px solid var(--btn-border);
+      color: var(--btn-text);
+      background: var(--btn-bg);
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
     }
-
-    .top-btn:hover {
-      opacity: 1;
-      background: #222;
-    }
+    .top-btn:hover { opacity: 0.9; }
 
     .presentation-name {
-      text-align: left;
       color: var(--title-color);
       font-size: 1.4rem;
       font-weight: 700;
-      min-height: 1.4em;
       margin: 4px 0 8px 0;
     }
 
     .slide-status {
-      text-align: left;
       margin-bottom: 12px;
       font-size: 0.95rem;
-      color: var(--status-grey);
+      color: var(--text);
+      opacity: 0.8;
     }
 
-    .slide-status .current {
-      color: #ffffff;
-      font-weight: 600;
-    }
+    #slideCurrent { color: var(--text); font-weight: 700; }
 
-    .slide-status .total {
-      color: var(--status-grey);
-    }
-
-    .slides-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 8px;
-    }
+    .slides-list { display: flex; flex-direction: column; gap: 10px; }
 
     .slide-item {
       border-radius: 10px;
       padding: 10px 12px;
       background: var(--slide-bg);
       color: var(--slide-text);
-      text-align: left;
+      border: 1px solid var(--border);
       cursor: pointer;
-      border: 1px solid #444;
-      transition: transform 0.05s ease, filter 0.05s ease, border-color 0.05s ease;
-    }
-
-    .slide-item:active {
-      transform: scale(0.98);
-      filter: brightness(0.9);
+      text-align: left;
+      transition: 0.12s ease;
     }
 
     .slide-item.current {
       background: var(--slide-bg-current);
       color: var(--slide-text-current);
-      border-color: #888;
+      border-color: var(--text);
       cursor: default;
     }
 
@@ -148,15 +150,8 @@
       margin-bottom: 4px;
     }
 
-    .slide-number {
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-
-    .slide-group {
-      font-size: 0.9rem;
-      opacity: 0.9;
-    }
+    .slide-number { font-weight: 600; font-size: 0.9rem; }
+    .slide-group { font-size: 0.9rem; opacity: 0.75; }
 
     .slide-text {
       font-size: 0.95rem;
@@ -172,17 +167,14 @@
       border-radius: 6px;
     }
 
-    @media (min-width: 768px) {
-      .slide-thumb {
-        max-height: 300px;
-      }
-    }
+    /* -----------------------------------------------------------
+       SETTINGS MODAL
+       ----------------------------------------------------------- */
 
-    /* Settings modal (restored from original picker.html) */
     .settings-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.65);
+      background: rgba(0,0,0,0.65);
       display: none;
       align-items: center;
       justify-content: center;
@@ -190,496 +182,408 @@
     }
 
     .settings-card {
-      background: #111111;
+      background: var(--modal-bg);
+      color: var(--modal-text);
       border-radius: 12px;
       padding: 16px;
-      min-width: 260px;
-      max-width: 340px;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-    }
-
-    .settings-header {
-      margin-bottom: 12px;
+      width: 320px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     }
 
     .settings-title {
       font-size: 1.1rem;
       font-weight: 600;
+      margin-bottom: 14px;
     }
 
-    .settings-row {
+    .settings-row { margin-bottom: 14px; }
+
+    .radio-row {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 6px;
       margin-top: 4px;
     }
 
-    .settings-label {
-      font-size: 0.95rem;
-    }
-
-    .settings-row-column {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-      margin-top: 10px;
-    }
-
-    .settings-textsize {
+    .radio-option {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .settings-footer button {
       width: 100%;
-    }
-
-    .settings-textsize input[type="range"] {
-      flex: 1;
-    }
-
-    .settings-textsize-value {
-      font-size: 0.85rem;
-      color: var(--status-grey);
-      min-width: 48px;
-      text-align: right;
-    }
-
-    .settings-footer {
-      margin-top: 14px;
-    }
-
-    .settings-close-btn {
-      width: 100%;
-      border: 1px solid #444;
+      padding: 8px;
       border-radius: 999px;
+      border: 1px solid var(--border);
       background: transparent;
-      color: #ffffff;
-      font-size: 0.95rem;
-      padding: 8px 0;
-      text-align: center;
+      color: var(--modal-text);
       cursor: pointer;
-      display: block;
-    }
-
-    .settings-close-btn:hover {
-      background: #222;
-    }
-
-    /* Toggle switch */
-    .switch {
-      position: relative;
-      width: 46px;
-      height: 26px;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background-color: #555;
-      transition: 0.2s;
-      border-radius: 999px;
-    }
-
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 20px;
-      width: 20px;
-      left: 3px;
-      top: 3px;
-      background-color: white;
-      transition: 0.2s;
-      border-radius: 50%;
-    }
-
-    .switch input:checked + .slider {
-      background-color: #00c853;
-    }
-
-    .switch input:checked + .slider:before {
-      transform: translateX(20px);
     }
   </style>
 </head>
+
 <body>
   <div class="wrapper">
-    <!-- Top bar -->
+
+    <!-- TOP BAR -->
     <div class="top-row">
       <div class="page-title">ICAS Presentation Clicker</div>
-      <div class="top-buttons">
-        <button type="button" class="top-btn" id="settingsButton">Settings</button>
-      </div>
+      <button class="top-btn" id="settingsButton">Settings</button>
     </div>
 
-    <!-- Presentation name -->
-    <div id="presentationName" class="presentation-name">
-      Loading presentation...
+    <!-- NAME -->
+    <div id="presentationName" class="presentation-name">Loading...</div>
+
+    <!-- STATUS -->
+    <div class="slide-status">
+      Slide <span id="slideCurrent">0</span> of <span id="slideTotal">0</span>
     </div>
 
-    <!-- Slide status -->
-    <div id="statusText" class="slide-status">
-      Slide <span id="slideCurrent" class="current">0</span>
-      of
-      <span id="slideTotal" class="total">0</span>
-    </div>
-
-    <!-- Slides list -->
+    <!-- SLIDES -->
     <div id="slidesContainer" class="slides-list"></div>
   </div>
 
-  <!-- Settings modal -->
+  <!-- SETTINGS MODAL -->
   <div id="settingsOverlay" class="settings-overlay">
     <div class="settings-card">
-      <div class="settings-header">
-        <div class="settings-title">Settings</div>
-      </div>
 
-      <!-- Thumbnails only -->
+      <div class="settings-title">Settings</div>
+
+      <!-- THUMBNAILS ONLY -->
       <div class="settings-row">
-        <div class="settings-label">Thumbnails only</div>
         <label class="switch">
-          <input type="checkbox" id="thumbsOnlyToggle" />
-          <span class="slider"></span>
+          Thumbnails only
+          <input type="checkbox" id="thumbsOnlyToggle">
         </label>
       </div>
 
-      <!-- Text size -->
-      <div class="settings-row settings-row-column">
-        <div class="settings-label">Text size</div>
-        <div class="settings-textsize">
-          <input
-            type="range"
-            id="textSizeSlider"
-            min="50"
-            max="300"
-            step="10"
-          />
-          <span id="textSizeValue" class="settings-textsize-value">100%</span>
+      <!-- TEXT SIZE -->
+      <div class="settings-row">
+        <label>Text size</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="range" id="textSizeSlider" min="50" max="300" step="10" style="flex:1;">
+          <span id="textSizeValue" style="color:gray; width:50px; text-align:right;">100%</span>
+        </div>
+      </div>
+
+      <!-- THEME -->
+      <div class="settings-row">
+        <label>Theme</label>
+        <div class="radio-row">
+
+          <label class="radio-option">
+            <input type="radio" name="themeOption" value="light">
+            Light
+          </label>
+
+          <label class="radio-option">
+            <input type="radio" name="themeOption" value="dark">
+            Dark
+          </label>
+
+          <label class="radio-option">
+            <input type="radio" name="themeOption" value="system">
+            System
+          </label>
+
         </div>
       </div>
 
       <div class="settings-footer">
-        <button type="button" id="settingsCloseButton" class="settings-close-btn">
-          Close
-        </button>
+        <button id="settingsCloseButton">Close</button>
       </div>
+
     </div>
   </div>
 
+  <!-- SCRIPT -->
   <script>
     const BASE_URL = "https://slides.icas-clicker.work";
+
     const SETTINGS_KEY = "icas-thumbnails-only";
     const TEXT_SCALE_KEY = "icas-picker-text-scale";
+    const THEME_KEY = "icas-theme";
 
-    const thumbCache = {};
-    let pendingSelectedIndex = null; // client-side "I just clicked this"
+    const thumbsCache = {};
+    let lastSlidesKey = null;
+    let lastUuid = null;
+    let lastIndex = null;
+
+    /* -----------------------------------------------------------
+       THEME MANAGEMENT
+       ----------------------------------------------------------- */
+
+    function applyTheme(mode) {
+      const root = document.documentElement;
+      root.classList.remove("dark");
+
+      if (mode === "light") {
+        root.classList.remove("dark");
+      } else if (mode === "dark") {
+        root.classList.add("dark");
+      } else if (mode === "system") {
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (prefersDark) root.classList.add("dark");
+        else root.classList.remove("dark");
+      }
+    }
+
+    function loadInitialTheme() {
+      let mode = localStorage.getItem(THEME_KEY);
+
+      // Default = LIGHT
+      if (!mode) {
+        mode = "light";
+        localStorage.setItem(THEME_KEY, "light");
+      }
+
+      applyTheme(mode);
+
+      // Update radio buttons
+      const radios = document.querySelectorAll("input[name='themeOption']");
+      radios.forEach(r => { r.checked = (r.value === mode); });
+    }
+
+    // System changes update theme if in system mode
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      if (localStorage.getItem(THEME_KEY) === "system") {
+        applyTheme("system");
+      }
+    });
+
+    /* -----------------------------------------------------------
+       GENERAL FUNCTIONS
+       ----------------------------------------------------------- */
 
     function getThumbnailsOnly() {
       return localStorage.getItem(SETTINGS_KEY) === "true";
     }
 
-    function setThumbnailsOnly(value) {
-      localStorage.setItem(SETTINGS_KEY, value ? "true" : "false");
-    }
-
     function getTextScale() {
       const raw = parseInt(localStorage.getItem(TEXT_SCALE_KEY), 10);
-      if (Number.isNaN(raw)) return 100;
-      return Math.min(300, Math.max(50, raw));
+      return Number.isNaN(raw) ? 100 : Math.min(300, Math.max(50, raw));
     }
 
-    function setTextScale(value) {
-      const clamped = Math.min(300, Math.max(50, value));
-      localStorage.setItem(TEXT_SCALE_KEY, String(clamped));
-    }
-
-    function applyTextScale(el, scalePercent) {
-      const baseRem = 0.95;
-      el.style.fontSize = baseRem * (scalePercent / 100) + "rem";
+    function applyTextScale(el, scale) {
+      el.style.fontSize = (0.95 * (scale / 100)) + "rem";
     }
 
     async function loadThumbnail(uuid, index) {
       const key = `${uuid}_${index}`;
-      if (thumbCache[key]) return thumbCache[key];
+      if (thumbsCache[key]) return thumbsCache[key];
 
       try {
-        const res = await fetch(
-          `${BASE_URL}/thumbnail?uuid=${uuid}&index=${index}`,
-          { method: "GET", cache: "no-cache" }
-        );
-        if (!res.ok) throw new Error("Bad thumbnail response");
-
+        const res = await fetch(`${BASE_URL}/thumbnail?uuid=${uuid}&index=${index}`, { cache:"no-cache" });
+        if (!res.ok) throw new Error();
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-        thumbCache[key] = url;
+        thumbsCache[key] = url;
         return url;
-      } catch (err) {
-        console.error("Thumbnail error:", err);
+      } catch {
         return null;
       }
     }
 
-    function focusSlide(index) {
-      // immediate local visual feedback
-      const container = document.getElementById("slidesContainer");
-      const children = container.children;
+    function updateCurrentHighlight(currentIndex) {
+      const children = document.getElementById("slidesContainer").children;
       for (const el of children) {
+        el.classList.remove("current");
         el.classList.remove("selected");
+        el.disabled = false;
       }
-      if (children[index]) {
-        children[index].classList.add("selected");
+      if (currentIndex === null) return;
+      if (children[currentIndex]) {
+        children[currentIndex].classList.add("current");
+        children[currentIndex].disabled = true;
       }
-
-      pendingSelectedIndex = index;
-
-      // tell backend
-      fetch(`${BASE_URL}/focus?index=${index}`, {
-        method: "GET",
-        cache: "no-cache",
-      }).catch((err) => console.error("Error focusing slide:", err));
-
-      // shortly after, refresh from truth
-      setTimeout(fetchStatus, 400);
     }
 
+    /* -----------------------------------------------------------
+       FETCH STATUS LOOP
+       ----------------------------------------------------------- */
+
     async function fetchStatus() {
-      const nameEl = document.getElementById("presentationName");
-      const statusEl = document.getElementById("statusText");
-      const container = document.getElementById("slidesContainer");
+      const presRes = await fetch(`${BASE_URL}/active-presentation`, { cache:"no-cache" });
+      const idxRes = await fetch(`${BASE_URL}/slide-index`, { cache:"no-cache" });
+
+      const pres = await presRes.json();
+      const idx = await idxRes.json();
+
+      const uuid = pres.presentation?.id?.uuid || null;
+      const name = pres.presentation?.id?.name || "No presentation";
+      document.getElementById("presentationName").textContent = name;
+
+      let slides = [];
+      if (Array.isArray(pres.presentation?.groups)) {
+        pres.presentation.groups.forEach(g => {
+          g.slides?.forEach(s => slides.push({
+            groupName: g.name || "",
+            text: s.text || ""
+          }));
+        });
+      }
+
+      const totalSlides = slides.length;
+      document.getElementById("slideTotal").textContent = totalSlides;
+
+      const idxVal = idx.presentation_index?.index;
+      const focusedMode = idxVal === null || idxVal === undefined;
+      const currentIndex = focusedMode ? null : idxVal;
+
+      // Update status line
+      if (focusedMode) {
+        document.querySelector(".slide-status").innerHTML =
+          `Status: <span style="color:var(--text); font-weight:700;">Not Active</span>`;
+      } else {
+        document.querySelector(".slide-status").innerHTML =
+          `Slide <span id="slideCurrent" style="color:var(--text); font-weight:700;">${currentIndex + 1}</span> 
+           of <span id="slideTotal">${totalSlides}</span>`;
+      }
 
       const thumbnailsOnly = getThumbnailsOnly();
       const textScale = getTextScale();
 
-      try {
-        const [presRes, indexRes] = await Promise.all([
-          fetch(`${BASE_URL}/active-presentation`, {
-            method: "GET",
-            cache: "no-cache",
-          }),
-          fetch(`${BASE_URL}/slide-index`, {
-            method: "GET",
-            cache: "no-cache",
-          }),
-        ]);
+      const slidesKey =
+        JSON.stringify(slides) +
+        "|thumbs=" + thumbnailsOnly +
+        "|scale=" + textScale +
+        "|focused=" + focusedMode;
 
-        if (!presRes.ok || !indexRes.ok) {
-          throw new Error("Bad response from endpoints");
+      const indexChanged = currentIndex !== lastIndex;
+
+      const needsFull =
+        uuid !== lastUuid ||
+        slidesKey !== lastSlidesKey ||
+        indexChanged;
+
+      if (!needsFull) {
+        updateCurrentHighlight(currentIndex);
+        return;
+      }
+
+      lastUuid = uuid;
+      lastSlidesKey = slidesKey;
+      lastIndex = currentIndex;
+
+      // REBUILD SLIDE LIST
+      const container = document.getElementById("slidesContainer");
+      container.innerHTML = "";
+
+      slides.forEach((slide, i) => {
+        const item = document.createElement("button");
+        item.className = "slide-item";
+
+        if (!focusedMode && i === currentIndex) {
+          item.classList.add("current");
+          item.disabled = true;
         }
 
-        const presData = await presRes.json();
-        const idxData = await indexRes.json();
+        const header = document.createElement("div");
+        header.className = "slide-item-header";
 
-        const uuid =
-          presData.presentation && presData.presentation.id
-            ? presData.presentation.id.uuid
-            : null;
+        const num = document.createElement("span");
+        num.className = "slide-number";
+        num.textContent = i + 1;
+        header.appendChild(num);
 
-        const presName =
-          (presData.presentation &&
-            presData.presentation.id &&
-            presData.presentation.id.name) ||
-          "No active presentation";
+        if (slide.groupName) {
+          const g = document.createElement("span");
+          g.className = "slide-group";
+          g.textContent = slide.groupName;
+          header.appendChild(g);
+        }
 
-        nameEl.textContent = presName;
+        item.appendChild(header);
 
-        // Build flat slides list
-        let slides = [];
-        if (
-          presData.presentation &&
-          Array.isArray(presData.presentation.groups)
-        ) {
-          presData.presentation.groups.forEach((group) => {
-            const groupName = group.name || "";
-            if (Array.isArray(group.slides)) {
-              group.slides.forEach((slide) => {
-                slides.push({
-                  groupName,
-                  text: (slide && slide.text) || "",
-                });
-              });
+        const hasText = slide.text.trim() !== "";
+
+        if (!thumbnailsOnly && hasText) {
+          const textDiv = document.createElement("div");
+          textDiv.className = "slide-text";
+          textDiv.innerHTML = slide.text.replace(/\n/g, "<br>");
+          applyTextScale(textDiv, textScale);
+          item.appendChild(textDiv);
+        } else if (uuid) {
+          loadThumbnail(uuid, i).then(url => {
+            if (url) {
+              const img = document.createElement("img");
+              img.src = url;
+              img.className = "slide-thumb";
+              item.appendChild(img);
             }
           });
         }
 
-        const totalSlides = slides.length;
-
-        const rawIndex =
-          idxData.presentation_index &&
-          typeof idxData.presentation_index.index === "number"
-            ? idxData.presentation_index.index
-            : null;
-
-        const isFocusedMode = rawIndex === null;
-
-        // Update status text
-        if (isFocusedMode) {
-          statusEl.innerHTML =
-            'Status: <span class="current">Not Active</span>';
-        } else {
-          statusEl.innerHTML = `
-            Slide <span id="slideCurrent" class="current">${rawIndex + 1}</span>
-            of <span id="slideTotal" class="total">${totalSlides}</span>
-          `;
-        }
-
-        // If the slide we clicked just became active, clear pending
-        if (!isFocusedMode && pendingSelectedIndex === rawIndex) {
-          pendingSelectedIndex = null;
-        }
-
-        // Always rebuild slides on every poll (simpler, robust)
-        container.innerHTML = "";
-
-        slides.forEach((slide, i) => {
-          const item = document.createElement("button");
-          item.type = "button";
-          item.className = "slide-item";
-
-          // Active slide highlight (only in non-focused mode)
-          if (!isFocusedMode && i === rawIndex) {
-            item.classList.add("current");
-            item.disabled = true;
-          } else if (pendingSelectedIndex === i) {
-            // Show "selected" outline while waiting for it to become active
-            item.classList.add("selected");
-          }
-
-          const header = document.createElement("div");
-          header.className = "slide-item-header";
-
-          const numSpan = document.createElement("span");
-          numSpan.className = "slide-number";
-          numSpan.textContent = i + 1;
-          header.appendChild(numSpan);
-
-          if (slide.groupName) {
-            const groupSpan = document.createElement("span");
-            groupSpan.className = "slide-group";
-            groupSpan.textContent = slide.groupName;
-            header.appendChild(groupSpan);
-          }
-
-          item.appendChild(header);
-
-          const hasText = slide.text && slide.text.trim() !== "";
-
-          if (!thumbnailsOnly && hasText) {
-            const textDiv = document.createElement("div");
-            textDiv.className = "slide-text";
-            textDiv.innerHTML = slide.text
-              .replace(/\r\n/g, "\n")
-              .replace(/\r/g, "\n")
-              .split("\n")
-              .map((l) => l.trimEnd())
-              .join("<br>");
-            applyTextScale(textDiv, textScale);
-            item.appendChild(textDiv);
-          } else if (uuid) {
-            loadThumbnail(uuid, i).then((imgURL) => {
-              if (imgURL) {
-                const img = document.createElement("img");
-                img.src = imgURL;
-                img.className = "slide-thumb";
-                item.appendChild(img);
-              } else if (hasText && !thumbnailsOnly) {
-                const textDiv = document.createElement("div");
-                textDiv.className = "slide-text";
-                textDiv.innerHTML = slide.text
-                  .replace(/\r\n/g, "\n")
-                  .replace(/\r/g, "\n")
-                  .split("\n")
-                  .map((l) => l.trimEnd())
-                  .join("<br>");
-                applyTextScale(textDiv, textScale);
-                item.appendChild(textDiv);
-              } else {
-                const fallback = document.createElement("div");
-                fallback.className = "slide-text";
-                fallback.textContent = "(No text / No thumbnail)";
-                applyTextScale(fallback, textScale);
-                item.appendChild(fallback);
-              }
-            });
-          } else {
-            const fallback = document.createElement("div");
-            fallback.className = "slide-text";
-            fallback.textContent = hasText ? slide.text : "(No text)";
-            applyTextScale(fallback, textScale);
-            item.appendChild(fallback);
-          }
-
-          item.addEventListener("click", () => {
-            if (item.disabled) return;
-            focusSlide(i);
-          });
-
-          container.appendChild(item);
+        item.addEventListener("click", () => {
+          if (item.disabled) return;
+          item.classList.add("selected");
+          fetch(`${BASE_URL}/focus?index=${i}`);
+          setTimeout(fetchStatus, 300);
         });
-      } catch (err) {
-        console.error(err);
-      }
+
+        container.appendChild(item);
+      });
     }
 
-    function openSettings() {
-      const overlay = document.getElementById("settingsOverlay");
-      const thumbsToggle = document.getElementById("thumbsOnlyToggle");
-      const textSlider = document.getElementById("textSizeSlider");
-      const textValue = document.getElementById("textSizeValue");
-
-      thumbsToggle.checked = getThumbnailsOnly();
-
-      const scale = getTextScale();
-      textSlider.value = scale;
-      textValue.textContent = `${scale}%`;
-
-      overlay.style.display = "flex";
-    }
-
-    function closeSettings() {
-      const overlay = document.getElementById("settingsOverlay");
-      overlay.style.display = "none";
-    }
+    /* -----------------------------------------------------------
+       SETTINGS MODAL LOGIC
+       ----------------------------------------------------------- */
 
     document.addEventListener("DOMContentLoaded", () => {
-      document
-        .getElementById("settingsButton")
-        .addEventListener("click", openSettings);
-      document
-        .getElementById("settingsCloseButton")
-        .addEventListener("click", closeSettings);
-      document
-        .getElementById("settingsOverlay")
-        .addEventListener("click", (e) => {
-          if (e.target.id === "settingsOverlay") closeSettings();
+      loadInitialTheme();
+
+      const overlay = document.getElementById("settingsOverlay");
+      const settingsBtn = document.getElementById("settingsButton");
+      const closeBtn = document.getElementById("settingsCloseButton");
+
+      settingsBtn.addEventListener("click", () => {
+        document.getElementById("thumbsOnlyToggle").checked = getThumbnailsOnly();
+
+        const scale = getTextScale();
+        document.getElementById("textSizeSlider").value = scale;
+        document.getElementById("textSizeValue").textContent = `${scale}%`;
+
+        // Load theme radio state
+        const savedTheme = localStorage.getItem(THEME_KEY) || "light";
+        document.querySelectorAll("input[name='themeOption']").forEach(r => {
+          r.checked = (r.value === savedTheme);
         });
 
-      const thumbsToggle = document.getElementById("thumbsOnlyToggle");
-      thumbsToggle.addEventListener("change", () => {
-        setThumbnailsOnly(thumbsToggle.checked);
+        overlay.style.display = "flex";
+      });
+
+      closeBtn.addEventListener("click", () => overlay.style.display = "none");
+      overlay.addEventListener("click", e => { if (e.target === overlay) overlay.style.display = "none"; });
+
+      document.getElementById("thumbsOnlyToggle").addEventListener("change", e => {
+        localStorage.setItem(SETTINGS_KEY, e.target.checked ? "true" : "false");
         fetchStatus();
       });
 
-      const textSlider = document.getElementById("textSizeSlider");
-      const textValue = document.getElementById("textSizeValue");
-      textSlider.addEventListener("input", () => {
-        const v = parseInt(textSlider.value, 10);
-        textValue.textContent = `${v}%`;
+      const slider = document.getElementById("textSizeSlider");
+      slider.addEventListener("input", () => {
+        document.getElementById("textSizeValue").textContent = `${slider.value}%`;
       });
-      textSlider.addEventListener("change", () => {
-        const v = parseInt(textSlider.value, 10);
-        setTextScale(v);
+      slider.addEventListener("change", () => {
+        localStorage.setItem(TEXT_SCALE_KEY, slider.value);
         fetchStatus();
+      });
+
+      // THEME RADIO LOGIC
+      document.querySelectorAll("input[name='themeOption']").forEach(radio => {
+        radio.addEventListener("change", () => {
+          const mode = radio.value;
+          localStorage.setItem(THEME_KEY, mode);
+          applyTheme(mode);
+        });
       });
 
       fetchStatus();
       setInterval(fetchStatus, 1000);
     });
   </script>
+
 </body>
 </html>
