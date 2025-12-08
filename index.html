@@ -45,7 +45,8 @@
     body {
       background: var(--bg);
       color: var(--slide-text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -60,7 +61,6 @@
       padding: 16px;
     }
 
-    /* Top bar */
     .top-row {
       display: flex;
       justify-content: space-between;
@@ -163,13 +163,12 @@
       word-break: break-word;
     }
 
-    /* Slightly rounded thumbnails */
     .slide-thumb {
       margin-top: 6px;
       width: 100%;
       max-height: 200px;
       object-fit: contain;
-      border-radius: 10px; /* <--- ADDED */
+      border-radius: 10px; /* increased corner radius */
     }
 
     /* Settings modal */
@@ -212,7 +211,11 @@
       width: 46px;
       height: 26px;
     }
-    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
     .slider {
       position: absolute;
       inset: 0;
@@ -316,7 +319,7 @@
 
       <div class="settings-title">Settings</div>
 
-      <!-- NEW Viewer Mode -->
+      <!-- NEW: Viewer Mode toggle -->
       <div class="settings-row">
         <span>Viewer Mode</span>
         <label class="switch">
@@ -325,6 +328,7 @@
         </label>
       </div>
 
+      <!-- EXISTING -->
       <div class="settings-row">
         <span>Slide Previews Only</span>
         <label class="switch">
@@ -356,31 +360,35 @@
     const SETTINGS_KEY = "icas-thumbnails-only";
     const TEXT_SCALE_KEY = "icas-picker-text-scale";
     const THEME_KEY = "icas-theme-mode";
-    const VIEWER_MODE_KEY = "icas-viewer-mode"; // <--- NEW
+    const VIEWER_MODE_KEY = "icas-viewer-mode"; // NEW KEY
 
     let pendingSelectedIndex = null;
 
-    /* Theme Handling */
     function applyTheme(mode) {
-      if (mode === "light") document.body.classList.remove("dark");
-      else if (mode === "dark") document.body.classList.add("dark");
-      else {
-        if (window.matchMedia("(prefers-color-scheme: dark)").matches)
+      if (mode === "light") {
+        document.body.classList.remove("dark");
+      } else if (mode === "dark") {
+        document.body.classList.add("dark");
+      } else {
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
           document.body.classList.add("dark");
-        else document.body.classList.remove("dark");
+        } else {
+          document.body.classList.remove("dark");
+        }
       }
       updateSegmentUI(mode);
     }
 
     function updateSegmentUI(mode) {
-      document.querySelectorAll("#themeSegment button").forEach(btn =>
-        btn.classList.toggle("active", btn.dataset.mode === mode)
-      );
+      document.querySelectorAll("#themeSegment button").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.mode === mode);
+      });
     }
 
     function loadTheme() {
-      const stored = localStorage.getItem(THEME_KEY) || "system";
-      applyTheme(stored);
+      const stored = localStorage.getItem(THEME_KEY);
+      const mode = stored || "system";
+      applyTheme(mode);
     }
 
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
@@ -388,7 +396,6 @@
       if (stored === "system") applyTheme("system");
     });
 
-    /* Settings getters/setters */
     function getViewerMode() {
       return localStorage.getItem(VIEWER_MODE_KEY) === "true";
     }
@@ -454,12 +461,10 @@
         let slides = [];
         if (Array.isArray(pres.presentation?.groups)) {
           pres.presentation.groups.forEach(g =>
-            g.slides?.forEach(s =>
-              slides.push({
-                groupName: g.name || "",
-                text: s.text || ""
-              })
-            )
+            g.slides?.forEach(s => slides.push({
+              groupName: g.name || "",
+              text: s.text || ""
+            }))
           );
         }
 
@@ -482,26 +487,18 @@
         container.innerHTML = "";
 
         const thumbnailsOnly = getThumbnailsOnly();
-        const textScale = getTextScale();
         const viewerMode = getViewerMode();
+        const textScale = getTextScale();
 
         slides.forEach((slide, i) => {
           const item = document.createElement("button");
           item.className = "slide-item";
 
-          const isCurrent = !focused && i === indexValue;
-
-          if (isCurrent) {
+          if (!focused && i === indexValue) {
             item.classList.add("current");
             item.disabled = true;
           } else if (pendingSelectedIndex === i) {
             item.classList.add("selected");
-          }
-
-          // Disable click action visually in viewer mode
-          if (viewerMode) {
-            item.style.opacity = "0.6";
-            item.style.cursor = "default";
           }
 
           const header = document.createElement("div");
@@ -541,8 +538,9 @@
           }
 
           item.addEventListener("click", () => {
-            if (viewerMode) return; // <--- BLOCK INTERACTION
-            if (!item.disabled) focusSlide(i);
+            if (!viewerMode && !item.disabled) {
+              focusSlide(i);
+            }
           });
 
           container.appendChild(item);
@@ -553,7 +551,12 @@
       }
     }
 
+    function closeModal() {
+      document.getElementById("settingsOverlay").style.display = "none";
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
+
       loadTheme();
 
       setInterval(fetchStatus, 1000);
@@ -561,27 +564,29 @@
 
       // Initialize UI
       (function initSettingsUI() {
-        const scale = getTextScale();
-        document.getElementById("textSizeSlider").value = scale;
-        document.getElementById("textSizeValue").textContent = `${scale}%`;
-
+        document.getElementById("textSizeSlider").value = getTextScale();
+        document.getElementById("textSizeValue").textContent = `${getTextScale()}%`;
         document.getElementById("thumbsOnlyToggle").checked = getThumbnailsOnly();
         document.getElementById("viewerModeToggle").checked = getViewerMode();
       })();
 
       document.getElementById("settingsButton").onclick = () => {
-        const scale = getTextScale();
-        document.getElementById("textSizeSlider").value = scale;
-        document.getElementById("textSizeValue").textContent = `${scale}%`;
-
+        document.getElementById("textSizeSlider").value = getTextScale();
+        document.getElementById("textSizeValue").textContent = `${getTextScale()}%`;
         document.getElementById("thumbsOnlyToggle").checked = getThumbnailsOnly();
         document.getElementById("viewerModeToggle").checked = getViewerMode();
-
         document.getElementById("settingsOverlay").style.display = "flex";
       };
 
-      document.getElementById("settingsCloseButton").onclick = () =>
-        document.getElementById("settingsOverlay").style.display = "none";
+      document.getElementById("settingsCloseButton").onclick = () => closeModal();
+
+      // NEW: close modal if clicking outside the card
+      const overlay = document.getElementById("settingsOverlay");
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) {
+          closeModal();
+        }
+      });
 
       document.getElementById("thumbsOnlyToggle").addEventListener("change", e => {
         setThumbnailsOnly(e.target.checked);
@@ -590,7 +595,6 @@
 
       document.getElementById("viewerModeToggle").addEventListener("change", e => {
         setViewerMode(e.target.checked);
-        fetchStatus();
       });
 
       const textSlider = document.getElementById("textSizeSlider");
@@ -610,6 +614,7 @@
           applyTheme(mode);
         });
       });
+
     });
   </script>
 
