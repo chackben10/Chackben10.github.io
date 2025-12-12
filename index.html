@@ -205,6 +205,13 @@
       margin-top: 6px;
     }
 
+    .settings-subtitle {
+      margin-top: 4px;
+      font-size: 0.85rem;
+      line-height: 1.25;
+      color: var(--status-grey);
+    }
+
     .switch {
       position: relative;
       width: 46px;
@@ -325,6 +332,21 @@
           <span class="slider"></span>
         </label>
       </div>
+      <div class="settings-subtitle">
+        Disables slide picking, so this page becomes a read-only slide viewer.
+      </div>
+
+      <!-- Auto-Scroll toggle -->
+      <div class="settings-row">
+        <span>Auto-Scroll</span>
+        <label class="switch">
+          <input type="checkbox" id="autoScrollToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="settings-subtitle">
+        Automatically scrolls to the current slide when a new slide change is detected.
+      </div>
 
       <!-- Slide Preview Preference -->
       <div class="settings-row-column">
@@ -366,7 +388,11 @@
     // Values: "image" | "text"
     const PREVIEW_PREF_KEY = "icas-slide-preview-preference";
 
+    // Auto-scroll
+    const AUTO_SCROLL_KEY = "icas-auto-scroll";
+
     let pendingSelectedIndex = null;
+    let lastSlideIndexForAutoScroll = null;
 
     function applyTheme(mode) {
       if (mode === "light") {
@@ -405,6 +431,13 @@
     }
     function setViewerMode(v) {
       localStorage.setItem(VIEWER_MODE_KEY, v ? "true" : "false");
+    }
+
+    function getAutoScroll() {
+      return localStorage.getItem(AUTO_SCROLL_KEY) === "true";
+    }
+    function setAutoScroll(v) {
+      localStorage.setItem(AUTO_SCROLL_KEY, v ? "true" : "false");
     }
 
     function getTextScale() {
@@ -502,6 +535,9 @@
         const viewerMode = getViewerMode();
         const textScale = getTextScale();
         const previewPref = getPreviewPreference(); // "text" or "image"
+        const autoScroll = getAutoScroll();
+
+        let currentSlideEl = null;
 
         slides.forEach((slide, i) => {
           const item = document.createElement("button");
@@ -510,6 +546,7 @@
           if (!focused && i === indexValue) {
             item.classList.add("current");
             item.disabled = true;
+            currentSlideEl = item;
           } else if (pendingSelectedIndex === i) {
             item.classList.add("selected");
           }
@@ -585,6 +622,17 @@
           container.appendChild(item);
         });
 
+        // Auto-scroll only when a NEW slide change is detected
+        if (!focused && autoScroll && typeof indexValue === "number" && indexValue !== lastSlideIndexForAutoScroll) {
+          lastSlideIndexForAutoScroll = indexValue;
+          if (currentSlideEl) {
+            currentSlideEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        } else if (!focused && typeof indexValue === "number" && lastSlideIndexForAutoScroll === null) {
+          // Initialize baseline without scrolling on first load
+          lastSlideIndexForAutoScroll = indexValue;
+        }
+
       } catch (e) {
         console.error(e);
       }
@@ -606,6 +654,7 @@
         document.getElementById("textSizeValue").textContent = `${scale}%`;
 
         document.getElementById("viewerModeToggle").checked = getViewerMode();
+        document.getElementById("autoScrollToggle").checked = getAutoScroll();
 
         const pref = getPreviewPreference();
         updatePreviewPrefSegmentUI(pref);
@@ -630,6 +679,10 @@
 
       document.getElementById("viewerModeToggle").addEventListener("change", e => {
         setViewerMode(e.target.checked);
+      });
+
+      document.getElementById("autoScrollToggle").addEventListener("change", e => {
+        setAutoScroll(e.target.checked);
       });
 
       document.querySelectorAll("#previewPreferenceSegment button").forEach(btn => {
