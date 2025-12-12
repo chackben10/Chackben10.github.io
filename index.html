@@ -78,6 +78,7 @@
       font-weight: 500;
       color: var(--slide-text);
       opacity: 0.85;
+      text-decoration: none;
       padding: 6px 12px;
       border-radius: 999px;
       border: 1px solid var(--border-color);
@@ -103,6 +104,11 @@
       margin-bottom: 10px;
     }
 
+    #slideCurrent {
+      color: var(--slide-text);
+      font-weight: 700;
+    }
+
     .slides-list {
       display: flex;
       flex-direction: column;
@@ -114,13 +120,17 @@
       border-radius: 10px;
       padding: 10px 12px;
       background: var(--slide-bg);
+      color: var(--slide-text);
       border: 1px solid var(--border-color);
       cursor: pointer;
+      transition: 0.1s ease;
       text-align: left;
     }
 
     .slide-item.current {
       background: var(--slide-bg-current);
+      color: var(--slide-text-current);
+      border-color: var(--border-color);
       cursor: default;
     }
 
@@ -131,6 +141,7 @@
 
     .slide-item-header {
       display: flex;
+      align-items: baseline;
       gap: 8px;
       margin-bottom: 4px;
     }
@@ -159,6 +170,7 @@
       border-radius: 10px;
     }
 
+    /* Settings modal */
     .settings-overlay {
       position: fixed;
       inset: 0;
@@ -177,6 +189,7 @@
       min-width: 260px;
       max-width: 340px;
       box-shadow: 0 18px 40px var(--modal-shadow);
+      transition: background 0.2s ease, color 0.2s ease;
     }
 
     .settings-title {
@@ -192,9 +205,45 @@
       margin-top: 6px;
     }
 
+    .switch {
+      position: relative;
+      width: 46px;
+      height: 26px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background-color: #999;
+      border-radius: 999px;
+      transition: 0.2s;
+    }
+    .slider:before {
+      content: "";
+      position: absolute;
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      top: 3px;
+      background-color: white;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .switch input:checked + .slider {
+      background-color: #ff5252;
+    }
+    .switch input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
     .settings-row-column {
       display: flex;
       flex-direction: column;
+      align-items: flex-start;
       margin-top: 12px;
       gap: 6px;
     }
@@ -205,7 +254,7 @@
       border: 1px solid var(--border-color);
       border-radius: 10px;
       overflow: hidden;
-      margin-top: 10px;
+      margin-top: 7px; /* was 10px: halved-ish spacing between title/label and segment UI */
     }
 
     .segment button {
@@ -213,7 +262,14 @@
       padding: 8px 0;
       background: transparent;
       border: none;
+      color: var(--settings-text);
       cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.15s;
+    }
+
+    .segment button:hover {
+      background: rgba(128,128,128,0.12);
     }
 
     .segment button.active {
@@ -227,13 +283,19 @@
       border: 1px solid var(--border-color);
       border-radius: 999px;
       background: transparent;
+      color: var(--settings-text);
+      font-size: 0.95rem;
       padding: 8px 0;
       margin-top: 14px;
       cursor: pointer;
     }
+
+    .settings-close-btn:hover {
+      background: rgba(128,128,128,0.12);
+    }
   </style>
 </head>
-  
+
 <body>
   <div class="wrapper">
     <div class="top-row">
@@ -264,7 +326,7 @@
         </label>
       </div>
 
-      <!-- Slide Preview Preference (replaces Slide Previews Only toggle) -->
+      <!-- Slide Preview Preference -->
       <div class="settings-row-column">
         <label>Slide Preview Preference</label>
         <div class="segment" id="previewPreferenceSegment">
@@ -282,7 +344,7 @@
       </div>
 
       <div class="settings-row-column" style="margin-top: 14px;">
-        <label style="margin-bottom: 6px;">Theme</label>
+        <label style="margin-bottom: 6px;">Display Theme</label>
         <div class="segment" id="themeSegment" style="margin-top: 0;">
           <button data-mode="light">Light</button>
           <button data-mode="dark">Dark</button>
@@ -301,7 +363,6 @@
     const THEME_KEY = "icas-theme-mode";
     const VIEWER_MODE_KEY = "icas-viewer-mode";
 
-    // NEW: replaces old thumbnails-only toggle key
     // Values: "image" | "text"
     const PREVIEW_PREF_KEY = "icas-slide-preview-preference";
 
@@ -358,10 +419,11 @@
       el.style.fontSize = (0.95 * (scale / 100)) + "rem";
     }
 
-    // NEW: preview preference helpers
+    // Preview preference helpers
     function getPreviewPreference() {
       const v = localStorage.getItem(PREVIEW_PREF_KEY);
-      return (v === "text" || v === "image") ? v : "image";
+      // NEW: default to text when nothing saved
+      return (v === "text" || v === "image") ? v : "text";
     }
     function setPreviewPreference(v) {
       localStorage.setItem(PREVIEW_PREF_KEY, v);
@@ -471,9 +533,6 @@
 
           const hasText = slide.text.trim() !== "";
 
-          // Content rendering (NEW behavior)
-          // - If preference is Text: show text whenever available, otherwise attempt image.
-          // - If preference is Image: attempt image; if image fails and text exists, show text fallback.
           if (previewPref === "text") {
             if (hasText) {
               const t = document.createElement("div");
@@ -492,8 +551,6 @@
               });
             }
           } else {
-            // preference === "image"
-            // Show text immediately as a fallback (if it exists), then replace with image if it loads.
             let fallbackTextEl = null;
             if (hasText) {
               const t = document.createElement("div");
@@ -507,7 +564,6 @@
             if (uuid) {
               loadThumbnail(uuid, i).then(url => {
                 if (url) {
-                  // Replace fallback text (if any) with the image
                   if (fallbackTextEl && fallbackTextEl.parentNode) {
                     fallbackTextEl.parentNode.removeChild(fallbackTextEl);
                   }
@@ -516,7 +572,6 @@
                   img.className = "slide-thumb";
                   item.appendChild(img);
                 }
-                // else: leave fallback text as-is (your requested behavior)
               });
             }
           }
@@ -559,7 +614,6 @@
         updateThemeSegmentUI(themeMode);
       }
 
-      // Initialize UI
       syncSettingsUI();
 
       document.getElementById("settingsButton").onclick = () => {
@@ -569,7 +623,6 @@
 
       document.getElementById("settingsCloseButton").onclick = () => closeModal();
 
-      // Close modal if clicking outside the card
       const overlay = document.getElementById("settingsOverlay");
       overlay.addEventListener("click", (e) => {
         if (e.target === overlay) closeModal();
@@ -579,17 +632,15 @@
         setViewerMode(e.target.checked);
       });
 
-      // Preview Preference segment handlers
       document.querySelectorAll("#previewPreferenceSegment button").forEach(btn => {
         btn.addEventListener("click", () => {
-          const pref = btn.dataset.pref; // "text" | "image"
+          const pref = btn.dataset.pref;
           setPreviewPreference(pref);
           updatePreviewPrefSegmentUI(pref);
           fetchStatus();
         });
       });
 
-      // Text size slider
       const textSlider = document.getElementById("textSizeSlider");
       const textVal = document.getElementById("textSizeValue");
       textSlider.addEventListener("input", () => {
@@ -600,7 +651,6 @@
         fetchStatus();
       });
 
-      // Theme segment
       document.querySelectorAll("#themeSegment button").forEach(btn => {
         btn.addEventListener("click", () => {
           const mode = btn.dataset.mode;
