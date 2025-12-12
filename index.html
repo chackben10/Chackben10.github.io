@@ -45,8 +45,7 @@
     body {
       background: var(--bg);
       color: var(--slide-text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -168,7 +167,7 @@
       width: 100%;
       max-height: 200px;
       object-fit: contain;
-      border-radius: 10px; /* increased corner radius */
+      border-radius: 10px;
     }
 
     /* Settings modal */
@@ -255,7 +254,7 @@
       border: 1px solid var(--border-color);
       border-radius: 10px;
       overflow: hidden;
-      margin-top: 14px;
+      margin-top: 10px;
     }
 
     .segment button {
@@ -316,10 +315,9 @@
   <!-- Settings modal -->
   <div id="settingsOverlay" class="settings-overlay">
     <div class="settings-card">
-
       <div class="settings-title">Settings</div>
 
-      <!-- NEW: Viewer Mode toggle -->
+      <!-- Viewer Mode toggle -->
       <div class="settings-row">
         <span>Viewer Mode</span>
         <label class="switch">
@@ -328,13 +326,13 @@
         </label>
       </div>
 
-      <!-- EXISTING -->
-      <div class="settings-row">
-        <span>Slide Previews Only</span>
-        <label class="switch">
-          <input type="checkbox" id="thumbsOnlyToggle">
-          <span class="slider"></span>
-        </label>
+      <!-- Slide Preview Preference (replaces Slide Previews Only toggle) -->
+      <div class="settings-row-column">
+        <label>Slide Preview Preference</label>
+        <div class="segment" id="previewPreferenceSegment">
+          <button data-pref="text">Text</button>
+          <button data-pref="image">Image</button>
+        </div>
       </div>
 
       <div class="settings-row-column">
@@ -345,10 +343,13 @@
         </div>
       </div>
 
-      <div class="segment" id="themeSegment">
-        <button data-mode="light">Light</button>
-        <button data-mode="dark">Dark</button>
-        <button data-mode="system">System</button>
+      <div class="settings-row-column" style="margin-top: 14px;">
+        <label style="margin-bottom: 6px;">Theme</label>
+        <div class="segment" id="themeSegment" style="margin-top: 0;">
+          <button data-mode="light">Light</button>
+          <button data-mode="dark">Dark</button>
+          <button data-mode="system">System</button>
+        </div>
       </div>
 
       <button id="settingsCloseButton" class="settings-close-btn">Close</button>
@@ -357,10 +358,14 @@
 
   <script>
     const BASE_URL = "https://slides.icas-clicker.work";
-    const SETTINGS_KEY = "icas-thumbnails-only";
+
     const TEXT_SCALE_KEY = "icas-picker-text-scale";
     const THEME_KEY = "icas-theme-mode";
-    const VIEWER_MODE_KEY = "icas-viewer-mode"; // NEW KEY
+    const VIEWER_MODE_KEY = "icas-viewer-mode";
+
+    // NEW: replaces old thumbnails-only toggle key
+    // Values: "image" | "text"
+    const PREVIEW_PREF_KEY = "icas-slide-preview-preference";
 
     let pendingSelectedIndex = null;
 
@@ -376,10 +381,10 @@
           document.body.classList.remove("dark");
         }
       }
-      updateSegmentUI(mode);
+      updateThemeSegmentUI(mode);
     }
 
-    function updateSegmentUI(mode) {
+    function updateThemeSegmentUI(mode) {
       document.querySelectorAll("#themeSegment button").forEach(btn => {
         btn.classList.toggle("active", btn.dataset.mode === mode);
       });
@@ -403,13 +408,6 @@
       localStorage.setItem(VIEWER_MODE_KEY, v ? "true" : "false");
     }
 
-    function getThumbnailsOnly() {
-      return localStorage.getItem(SETTINGS_KEY) === "true";
-    }
-    function setThumbnailsOnly(v) {
-      localStorage.setItem(SETTINGS_KEY, v ? "true" : "false");
-    }
-
     function getTextScale() {
       const raw = parseInt(localStorage.getItem(TEXT_SCALE_KEY), 10);
       return Number.isNaN(raw) ? 100 : Math.min(300, Math.max(50, raw));
@@ -420,6 +418,20 @@
 
     function applyTextScale(el, scale) {
       el.style.fontSize = (0.95 * (scale / 100)) + "rem";
+    }
+
+    // NEW: preview preference helpers
+    function getPreviewPreference() {
+      const v = localStorage.getItem(PREVIEW_PREF_KEY);
+      return (v === "text" || v === "image") ? v : "image";
+    }
+    function setPreviewPreference(v) {
+      localStorage.setItem(PREVIEW_PREF_KEY, v);
+    }
+    function updatePreviewPrefSegmentUI(pref) {
+      document.querySelectorAll("#previewPreferenceSegment button").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.pref === pref);
+      });
     }
 
     const thumbCache = {};
@@ -476,19 +488,20 @@
         if (focused) {
           statusEl.innerHTML = `Status: <span class="current">Not Active</span>`;
         } else {
-          statusEl.innerHTML = `Slide <span id="slideCurrent" class="current">${indexValue + 1}</span> of <span id="slideTotal">${totalSlides}</span>`;
+          statusEl.innerHTML =
+            `Slide <span id="slideCurrent" class="current">${indexValue + 1}</span> of <span id="slideTotal">${totalSlides}</span>`;
         }
 
         if (!focused && pendingSelectedIndex === indexValue) {
-          pendingSelectedIndex = null; 
+          pendingSelectedIndex = null;
         }
 
         const container = document.getElementById("slidesContainer");
         container.innerHTML = "";
 
-        const thumbnailsOnly = getThumbnailsOnly();
         const viewerMode = getViewerMode();
         const textScale = getTextScale();
+        const previewPref = getPreviewPreference(); // "text" or "image"
 
         slides.forEach((slide, i) => {
           const item = document.createElement("button");
@@ -520,21 +533,54 @@
 
           const hasText = slide.text.trim() !== "";
 
-          if (!thumbnailsOnly && hasText) {
-            const t = document.createElement("div");
-            t.className = "slide-text";
-            t.innerHTML = slide.text.replace(/\n/g, "<br>");
-            applyTextScale(t, textScale);
-            item.appendChild(t);
-          } else if (uuid) {
-            loadThumbnail(uuid, i).then(url => {
-              if (url) {
-                const img = document.createElement("img");
-                img.src = url;
-                img.className = "slide-thumb";
-                item.appendChild(img);
-              }
-            });
+          // Content rendering (NEW behavior)
+          // - If preference is Text: show text whenever available, otherwise attempt image.
+          // - If preference is Image: attempt image; if image fails and text exists, show text fallback.
+          if (previewPref === "text") {
+            if (hasText) {
+              const t = document.createElement("div");
+              t.className = "slide-text";
+              t.innerHTML = slide.text.replace(/\n/g, "<br>");
+              applyTextScale(t, textScale);
+              item.appendChild(t);
+            } else if (uuid) {
+              loadThumbnail(uuid, i).then(url => {
+                if (url) {
+                  const img = document.createElement("img");
+                  img.src = url;
+                  img.className = "slide-thumb";
+                  item.appendChild(img);
+                }
+              });
+            }
+          } else {
+            // preference === "image"
+            // Show text immediately as a fallback (if it exists), then replace with image if it loads.
+            let fallbackTextEl = null;
+            if (hasText) {
+              const t = document.createElement("div");
+              t.className = "slide-text";
+              t.innerHTML = slide.text.replace(/\n/g, "<br>");
+              applyTextScale(t, textScale);
+              item.appendChild(t);
+              fallbackTextEl = t;
+            }
+
+            if (uuid) {
+              loadThumbnail(uuid, i).then(url => {
+                if (url) {
+                  // Replace fallback text (if any) with the image
+                  if (fallbackTextEl && fallbackTextEl.parentNode) {
+                    fallbackTextEl.parentNode.removeChild(fallbackTextEl);
+                  }
+                  const img = document.createElement("img");
+                  img.src = url;
+                  img.className = "slide-thumb";
+                  item.appendChild(img);
+                }
+                // else: leave fallback text as-is (your requested behavior)
+              });
+            }
           }
 
           item.addEventListener("click", () => {
@@ -556,47 +602,56 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-
       loadTheme();
 
       setInterval(fetchStatus, 1000);
       fetchStatus();
 
-      // Initialize UI
-      (function initSettingsUI() {
-        document.getElementById("textSizeSlider").value = getTextScale();
-        document.getElementById("textSizeValue").textContent = `${getTextScale()}%`;
-        document.getElementById("thumbsOnlyToggle").checked = getThumbnailsOnly();
+      function syncSettingsUI() {
+        const scale = getTextScale();
+        document.getElementById("textSizeSlider").value = scale;
+        document.getElementById("textSizeValue").textContent = `${scale}%`;
+
         document.getElementById("viewerModeToggle").checked = getViewerMode();
-      })();
+
+        const pref = getPreviewPreference();
+        updatePreviewPrefSegmentUI(pref);
+
+        const themeMode = localStorage.getItem(THEME_KEY) || "system";
+        updateThemeSegmentUI(themeMode);
+      }
+
+      // Initialize UI
+      syncSettingsUI();
 
       document.getElementById("settingsButton").onclick = () => {
-        document.getElementById("textSizeSlider").value = getTextScale();
-        document.getElementById("textSizeValue").textContent = `${getTextScale()}%`;
-        document.getElementById("thumbsOnlyToggle").checked = getThumbnailsOnly();
-        document.getElementById("viewerModeToggle").checked = getViewerMode();
+        syncSettingsUI();
         document.getElementById("settingsOverlay").style.display = "flex";
       };
 
       document.getElementById("settingsCloseButton").onclick = () => closeModal();
 
-      // NEW: close modal if clicking outside the card
+      // Close modal if clicking outside the card
       const overlay = document.getElementById("settingsOverlay");
       overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) {
-          closeModal();
-        }
-      });
-
-      document.getElementById("thumbsOnlyToggle").addEventListener("change", e => {
-        setThumbnailsOnly(e.target.checked);
-        fetchStatus();
+        if (e.target === overlay) closeModal();
       });
 
       document.getElementById("viewerModeToggle").addEventListener("change", e => {
         setViewerMode(e.target.checked);
       });
 
+      // Preview Preference segment handlers
+      document.querySelectorAll("#previewPreferenceSegment button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const pref = btn.dataset.pref; // "text" | "image"
+          setPreviewPreference(pref);
+          updatePreviewPrefSegmentUI(pref);
+          fetchStatus();
+        });
+      });
+
+      // Text size slider
       const textSlider = document.getElementById("textSizeSlider");
       const textVal = document.getElementById("textSizeValue");
       textSlider.addEventListener("input", () => {
@@ -607,6 +662,7 @@
         fetchStatus();
       });
 
+      // Theme segment
       document.querySelectorAll("#themeSegment button").forEach(btn => {
         btn.addEventListener("click", () => {
           const mode = btn.dataset.mode;
@@ -614,9 +670,7 @@
           applyTheme(mode);
         });
       });
-
     });
   </script>
-
 </body>
 </html>
