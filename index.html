@@ -78,7 +78,6 @@
       font-weight: 500;
       color: var(--slide-text);
       opacity: 0.85;
-      text-decoration: none;
       padding: 6px 12px;
       border-radius: 999px;
       border: 1px solid var(--border-color);
@@ -104,11 +103,6 @@
       margin-bottom: 10px;
     }
 
-    #slideCurrent {
-      color: var(--slide-text);
-      font-weight: 700;
-    }
-
     .slides-list {
       display: flex;
       flex-direction: column;
@@ -120,17 +114,13 @@
       border-radius: 10px;
       padding: 10px 12px;
       background: var(--slide-bg);
-      color: var(--slide-text);
       border: 1px solid var(--border-color);
       cursor: pointer;
-      transition: 0.1s ease;
       text-align: left;
     }
 
     .slide-item.current {
       background: var(--slide-bg-current);
-      color: var(--slide-text-current);
-      border-color: var(--border-color);
       cursor: default;
     }
 
@@ -141,7 +131,6 @@
 
     .slide-item-header {
       display: flex;
-      align-items: baseline;
       gap: 8px;
       margin-bottom: 4px;
     }
@@ -170,7 +159,6 @@
       border-radius: 10px;
     }
 
-    /* Settings modal */
     .settings-overlay {
       position: fixed;
       inset: 0;
@@ -189,7 +177,6 @@
       min-width: 260px;
       max-width: 340px;
       box-shadow: 0 18px 40px var(--modal-shadow);
-      transition: background 0.2s ease, color 0.2s ease;
     }
 
     .settings-title {
@@ -205,45 +192,9 @@
       margin-top: 6px;
     }
 
-    .switch {
-      position: relative;
-      width: 46px;
-      height: 26px;
-    }
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .slider {
-      position: absolute;
-      inset: 0;
-      background-color: #999;
-      border-radius: 999px;
-      transition: 0.2s;
-    }
-    .slider:before {
-      content: "";
-      position: absolute;
-      height: 20px;
-      width: 20px;
-      left: 3px;
-      top: 3px;
-      background-color: white;
-      border-radius: 50%;
-      transition: 0.2s;
-    }
-    .switch input:checked + .slider {
-      background-color: #ff5252;
-    }
-    .switch input:checked + .slider:before {
-      transform: translateX(20px);
-    }
-
     .settings-row-column {
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
       margin-top: 12px;
       gap: 6px;
     }
@@ -262,14 +213,7 @@
       padding: 8px 0;
       background: transparent;
       border: none;
-      color: var(--settings-text);
       cursor: pointer;
-      font-size: 0.9rem;
-      transition: background 0.15s;
-    }
-
-    .segment button:hover {
-      background: rgba(128,128,128,0.12);
     }
 
     .segment button.active {
@@ -283,19 +227,13 @@
       border: 1px solid var(--border-color);
       border-radius: 999px;
       background: transparent;
-      color: var(--settings-text);
-      font-size: 0.95rem;
       padding: 8px 0;
       margin-top: 14px;
       cursor: pointer;
     }
-
-    .settings-close-btn:hover {
-      background: rgba(128,128,128,0.12);
-    }
   </style>
 </head>
-
+  
 <body>
   <div class="wrapper">
     <div class="top-row">
