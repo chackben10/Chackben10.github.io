@@ -176,12 +176,19 @@
       padding: 16px 12px;
       font-size: 1.3rem;
       font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.07s ease, filter 0.07s ease;
+    }
+    button.btn-add:active {
+      transform: scale(0.97);
+      filter: brightness(0.9);
     }
 
     .status {
       text-align: center;
       margin-top: 8px;
       opacity: 0.8;
+      min-height: 1.1em;
     }
   </style>
 </head>
@@ -224,9 +231,21 @@
 
 <script>
 (function () {
-  const STORAGE_KEY = "icas-scoreboard-state-v1";
-  let rows = [];
-  let history = [];
+  // ====== BACKEND (Cloudflare tunnel) ======
+  const API_BASE = "https://score.icas-clicker.work";
+  const SCORE_GET  = `${API_BASE}/score`;
+  const SCORE_POST = `${API_BASE}/score`;
+
+  // ====== SHARED STATE ======
+  // This entire object is what we GET/POST to the backend.
+  // Backend currently stores it as-is, so Undo will be shared too.
+  let state = { rows: [], history: [] };
+
+  // Local helpers
+  let lastRemoteJson = "";      // last applied remote JSON string
+  let pendingRemote = null;     // hold remote updates while user is editing
+  let isPosting = false;        // prevent re-entrant posts
+  let pollTimer = null;
 
   const scoreRowsEl = document.getElementById("scoreRows");
   const emptyStateEl = document.getElementById("emptyState");
@@ -235,114 +254,221 @@
   const addRowBtn = document.getElementById("addRowBtn");
   const statusText = document.getElementById("statusText");
 
-  function setStatus(msg) {
+  function setStatus(msg, timeoutMs = 900) {
     statusText.textContent = msg;
-    setTimeout(() => {
-      if (statusText.textContent === msg) statusText.textContent = "Ready";
-    }, 900);
+    if (timeoutMs) {
+      setTimeout(() => {
+        if (statusText.textContent === msg) statusText.textContent = "Ready";
+      }, timeoutMs);
+    }
   }
 
-  function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+  function normalizeIncoming(obj) {
+    const safe = { rows: [], history: [] };
+    if (obj && Array.isArray(obj.rows)) {
+      safe.rows = obj.rows.map(r => ({
+        id: String(r.id ?? ""),
+        name: String(r.name ?? ""),
+        score: Number.isFinite(Number(r.score)) ? Number(r.score) : 0
+      })).filter(r => r.id);
+    }
+    if (obj && Array.isArray(obj.history)) {
+      // history = array of rows snapshots
+      safe.history = obj.history
+        .filter(h => Array.isArray(h))
+        .slice(-100); // keep last 100
+    }
+    return safe;
   }
 
-  function load() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) rows = parsed;
-    } catch {}
+  function currentJson() {
+    return JSON.stringify(state);
+  }
+
+  function isUserEditing() {
+    const el = document.activeElement;
+    if (!el) return false;
+    return el.classList?.contains("name-input") || el.classList?.contains("custom-amount");
   }
 
   function pushHistory() {
-    history.push(JSON.parse(JSON.stringify(rows)));
-    undoBtn.disabled = history.length === 0;
+    state.history = Array.isArray(state.history) ? state.history : [];
+    const snapshot = JSON.parse(JSON.stringify(state.rows));
+    state.history.push(snapshot);
+    // cap
+    if (state.history.length > 100) state.history = state.history.slice(-100);
+    updateUndoButton();
   }
 
-  function undo() {
-    if (!history.length) return;
-    rows = history.pop();
-    undoBtn.disabled = history.length === 0;
+  function updateUndoButton() {
+    const canUndo = Array.isArray(state.history) && state.history.length > 0;
+    undoBtn.disabled = !canUndo;
+    undoBtn.style.opacity = canUndo ? 0.85 : 0.5;
+  }
+
+  async function fetchRemoteState() {
+    try {
+      const res = await fetch(SCORE_GET, { cache: "no-cache" });
+      if (!res.ok) throw new Error("Bad response");
+      const remote = normalizeIncoming(await res.json());
+      return remote;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function postState() {
+    if (isPosting) return;
+    isPosting = true;
+    try {
+      const body = JSON.stringify(state);
+      const res = await fetch(SCORE_POST, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body
+      });
+      if (!res.ok) throw new Error("Bad response");
+      lastRemoteJson = body; // assume backend now matches
+    } catch (e) {
+      setStatus("Sync error", 1200);
+    } finally {
+      isPosting = false;
+    }
+  }
+
+  async function pollLoop() {
+    const remote = await fetchRemoteState();
+    if (!remote) return;
+
+    const remoteJson = JSON.stringify(remote);
+    if (remoteJson === lastRemoteJson) return;
+
+    // If user is typing, don't clobber fields; apply when editing ends.
+    if (isUserEditing()) {
+      pendingRemote = remote;
+      return;
+    }
+
+    applyRemote(remote);
+  }
+
+  function applyRemote(remote) {
+    state = normalizeIncoming(remote);
+    lastRemoteJson = JSON.stringify(state);
+    pendingRemote = null;
     render();
-    save();
+  }
+
+  function applyPendingRemoteIfAny() {
+    if (pendingRemote && !isUserEditing()) {
+      applyRemote(pendingRemote);
+    }
+  }
+
+  // ====== MUTATIONS (shared) ======
+  function undo() {
+    if (!state.history || !state.history.length) return;
+    const prevRows = state.history.pop();
+    state.rows = Array.isArray(prevRows) ? prevRows : [];
+    updateUndoButton();
+    render();
+    postState();
     setStatus("Undo");
   }
 
   function clearAll() {
-    if (!rows.length) return;
+    if (!state.rows.length) return;
     if (!confirm("Clear all rows?")) return;
     pushHistory();
-    rows = [];
+    state.rows = [];
     render();
-    save();
+    postState();
     setStatus("Cleared");
   }
 
   function addRow() {
     pushHistory();
-    rows.push({
-      id: Date.now().toString(36) + Math.random().toString(16),
+    state.rows.push({
+      id: Date.now().toString(36) + Math.random().toString(16).slice(2),
       name: "",
-      score: 0,
+      score: 0
     });
     render();
-    save();
+    postState();
     setStatus("Added row");
+
+    // focus the new row name input
+    requestAnimationFrame(() => {
+      const last = state.rows[state.rows.length - 1];
+      if (!last) return;
+      const input = scoreRowsEl.querySelector(`.score-row[data-id="${last.id}"] .name-input`);
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    });
   }
 
   function updateName(id, newName) {
-    const row = rows.find(r => r.id === id);
+    const row = state.rows.find(r => r.id === id);
     if (!row) return;
-    const cleaned = newName.trim();
+    const cleaned = String(newName ?? "").trim();
     if (row.name === cleaned) return;
+
     pushHistory();
     row.name = cleaned;
     render();
-    save();
+    postState();
     setStatus("Name updated");
   }
 
   function updateScore(id, delta) {
-    const row = rows.find(r => r.id === id);
+    const row = state.rows.find(r => r.id === id);
     if (!row) return;
+
+    const d = Number(delta);
+    if (!Number.isFinite(d) || d === 0) return;
+
     pushHistory();
-    row.score += delta;
+    row.score = (Number(row.score) || 0) + d;
     render();
-    save();
-    setStatus(delta > 0 ? `+${delta}` : `${delta}`);
+    postState();
+    setStatus(d > 0 ? `+${d}` : `${d}`);
   }
 
   function applyCustom(id, inputEl) {
     const val = Number(inputEl.value);
-    if (!val) { inputEl.value = ""; return; }
+    if (!Number.isFinite(val) || val === 0) {
+      inputEl.value = "";
+      return;
+    }
     updateScore(id, val);
     inputEl.value = "";
   }
 
+  // ====== RENDER ======
   function render() {
     scoreRowsEl.innerHTML = "";
 
-    if (!rows.length) {
+    if (!state.rows.length) {
       emptyStateEl.style.display = "block";
-      return;
+    } else {
+      emptyStateEl.style.display = "none";
     }
-    emptyStateEl.style.display = "none";
 
-    rows.forEach(row => {
+    state.rows.forEach(row => {
       const rowEl = document.createElement("div");
       rowEl.className = "score-row";
       rowEl.dataset.id = row.id;
 
-      /* NAME CELL */
-
+      // NAME CELL
       const nameCell = document.createElement("div");
       nameCell.className = "name-cell";
 
       const nameInput = document.createElement("input");
       nameInput.type = "text";
       nameInput.className = "name-input";
-      nameInput.value = row.name;
+      nameInput.value = row.name || "";
       nameInput.placeholder = "Name";
 
       // Auto-apply rename on Enter or blur
@@ -354,18 +480,17 @@
       });
       nameInput.addEventListener("blur", () => {
         updateName(row.id, nameInput.value);
+        applyPendingRemoteIfAny();
       });
 
       nameCell.appendChild(nameInput);
 
-      /* SCORE CELL */
-
+      // SCORE CELL
       const scoreCell = document.createElement("div");
       scoreCell.className = "score-cell";
-      scoreCell.textContent = row.score;
+      scoreCell.textContent = String(row.score ?? 0);
 
-      /* CONTROLS CELL */
-
+      // CONTROLS CELL
       const controlsCell = document.createElement("div");
       controlsCell.className = "controls-cell";
 
@@ -374,11 +499,13 @@
 
       const plusBtn = document.createElement("button");
       plusBtn.className = "small-btn";
+      plusBtn.type = "button";
       plusBtn.textContent = "+1";
       plusBtn.onclick = () => updateScore(row.id, 1);
 
       const minusBtn = document.createElement("button");
       minusBtn.className = "small-btn";
+      minusBtn.type = "button";
       minusBtn.textContent = "-1";
       minusBtn.onclick = () => updateScore(row.id, -1);
 
@@ -389,13 +516,18 @@
       customInput.type = "number";
       customInput.className = "custom-amount";
       customInput.placeholder = "±N";
+      customInput.step = "1";
+
       customInput.addEventListener("keydown", e => {
         if (e.key === "Enter") {
           e.preventDefault();
           customInput.blur();
         }
       });
-      customInput.addEventListener("blur", () => applyCustom(row.id, customInput));
+      customInput.addEventListener("blur", () => {
+        applyCustom(row.id, customInput);
+        applyPendingRemoteIfAny();
+      });
 
       controlsCell.appendChild(rowBtns);
       controlsCell.appendChild(customInput);
@@ -406,15 +538,45 @@
 
       scoreRowsEl.appendChild(rowEl);
     });
+
+    updateUndoButton();
   }
 
-  // Top bar buttons
-  undoBtn.onclick = undo;
-  clearBtn.onclick = clearAll;
-  addRowBtn.onclick = addRow;
+  // ====== INIT ======
+  async function init() {
+    undoBtn.onclick = undo;
+    clearBtn.onclick = clearAll;
+    addRowBtn.onclick = addRow;
 
-  load();
-  render();
+    undoBtn.disabled = true;
+    undoBtn.style.opacity = 0.5;
+
+    setStatus("Connecting…", 0);
+
+    const remote = await fetchRemoteState();
+    if (remote) {
+      applyRemote(remote);
+      setStatus("Connected ✔");
+    } else {
+      // If backend is down, keep empty UI (still usable but won't sync)
+      state = { rows: [], history: [] };
+      lastRemoteJson = currentJson();
+      render();
+      setStatus("Backend offline", 1200);
+    }
+
+    // Poll for sync (lightweight)
+    pollTimer = setInterval(pollLoop, 800);
+
+    // If user finishes editing and we had deferred remote changes, apply them
+    document.addEventListener("focusin", () => {});
+    document.addEventListener("focusout", () => {
+      // focusout fires before blur sometimes; let blur handler run first
+      setTimeout(applyPendingRemoteIfAny, 0);
+    });
+  }
+
+  init();
 })();
 </script>
 
