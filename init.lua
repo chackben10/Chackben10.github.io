@@ -8,6 +8,13 @@ proRemote = proRemote or {}
 -- CONFIG
 ------------------------------------------------------------
 
+-- ✅ Enable/disable the Bible Look enforcement check
+proRemote.check_for_bible = true
+
+-- ✅ Timer settings (tweak if you want)
+proRemote.BIBLE_CHECK_INTERVAL_SEC = 0.75   -- how often to poll /v1/presentation/active
+proRemote.BIBLE_MACRO_COOLDOWN_SEC = 2.5    -- minimum time between macro triggers (prevents spam)
+
 -- Clicker keys
 proRemote.nextSlideKey = 69
 proRemote.prevSlideKey = 78
@@ -17,6 +24,11 @@ proRemote.PROPRESENTER_ACTIVE_BASE  = "http://localhost:49232/v1/presentation/ac
 proRemote.PROPRESENTER_FOCUSED_BASE = "http://localhost:49232/v1/presentation/focused"
 proRemote.PROPRESENTER_UUID_BASE    = "http://localhost:49232/v1/presentation"
 proRemote.PROPRESENTER_SLIDE_INDEX  = "http://localhost:49232/v1/presentation/slide_index"
+
+-- ✅ Look + Macro endpoints
+proRemote.PROPRESENTER_LOOK_CURRENT = "http://localhost:49232/v1/look/current"
+proRemote.BIBLE_LOOK_NAME           = "Bible"
+proRemote.BIBLE_MACRO_TRIGGER_URL   = "http://localhost:49232/v1/macro/69293C79-69BB-4061-86E1-76F627CB3085/trigger"
 
 proRemote.PROPRESENTER_PRESENTATION_BASE = proRemote.PROPRESENTER_ACTIVE_BASE
 
@@ -68,6 +80,106 @@ local function currentMode()
     else
         return "focused"
     end
+end
+
+------------------------------------------------------------
+-- ✅ Bible condition:
+--    - Active presentation has exactly ONE group
+--    - That group's name contains ":" anywhere
+------------------------------------------------------------
+
+local function activePresentationHasSingleGroupWithColon()
+    local ok, status, body = pcall(function()
+        return hs.http.get(proRemote.PROPRESENTER_ACTIVE_BASE, {
+            ["accept"] = "application/json"
+        })
+    end)
+
+    if not ok or status ~= 200 or not body or body == "" then
+        return false
+    end
+
+    local data = decodeJson(body)
+    local pres = data and data.presentation
+    local groups = pres and pres.groups
+
+    if type(groups) ~= "table" then
+        return false
+    end
+
+    if #groups ~= 1 then
+        return false
+    end
+
+    local gname = groups[1] and groups[1].name
+    if type(gname) ~= "string" then
+        return false
+    end
+
+    return gname:find(":", 1, true) ~= nil
+end
+
+------------------------------------------------------------
+-- ✅ Enforce Look name == "Bible" (trigger macro if not)
+-- Includes cooldown + simple edge detection to avoid spam.
+------------------------------------------------------------
+
+proRemote._bible_lastCondition = false
+proRemote._bible_lastMacroAt   = 0
+
+local function enforceBibleLookIfNeeded()
+    if not proRemote.check_for_bible then
+        proRemote._bible_lastCondition = false
+        return
+    end
+
+    local cond = activePresentationHasSingleGroupWithColon()
+
+    -- Only act on rising edge: false -> true
+    local rising = (cond == true and proRemote._bible_lastCondition == false)
+    proRemote._bible_lastCondition = cond
+
+    if not rising then return end
+
+    -- Cooldown
+    local now = hs.timer.secondsSinceEpoch()
+    if (now - (proRemote._bible_lastMacroAt or 0)) < proRemote.BIBLE_MACRO_COOLDOWN_SEC then
+        return
+    end
+
+    local ok, status, body = pcall(function()
+        return hs.http.get(proRemote.PROPRESENTER_LOOK_CURRENT, {
+            ["accept"] = "application/json"
+        })
+    end)
+
+    if not ok or status ~= 200 or not body or body == "" then
+        return
+    end
+
+    local look = decodeJson(body)
+    local lookName = look and look.id and look.id.name
+
+    if lookName ~= proRemote.BIBLE_LOOK_NAME then
+        proRemote._bible_lastMacroAt = now
+        hs.http.asyncGet(proRemote.BIBLE_MACRO_TRIGGER_URL, {}, function() end)
+    end
+end
+
+------------------------------------------------------------
+-- ✅ Timer: poll active presentation periodically
+------------------------------------------------------------
+
+local function startBibleTimer()
+    if proRemote.bibleTimer then proRemote.bibleTimer:stop() end
+
+    proRemote.bibleTimer = hs.timer.doEvery(proRemote.BIBLE_CHECK_INTERVAL_SEC, function()
+        -- Protect timer loop from exceptions
+        local ok = pcall(enforceBibleLookIfNeeded)
+        if not ok then
+            -- swallow errors so timer keeps running
+        end
+    end)
 end
 
 ------------------------------------------------------------
@@ -285,5 +397,8 @@ proRemote.server:setPort(proRemote.HTTP_SERVER_PORT)
 proRemote.server:setInterface(proRemote.HTTP_SERVER_INTERFACE)
 proRemote.server:setCallback(httpCallback)
 proRemote.server:start()
+
+-- ✅ Start timer after everything is set up
+startBibleTimer()
 
 hs.alert.show("ProPresenter remote ready")
