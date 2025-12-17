@@ -13,6 +13,14 @@
       --btn-next-text: #ffffff;
       --title-color: #ff5252;
       --status-grey: #888888;
+
+      --card-bg: #ffffff;
+      --card-text: #000000;
+      --muted: #666;
+      --border: #e6e6e6;
+      --pill-border: #cfcfcf;
+      --danger: #ff5252;
+      --danger-bg: rgba(255, 82, 82, 0.10);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,8 +42,7 @@
       padding: 16px;
     }
 
-    /* Top Bar */
-
+    /* Top bar */
     .top-row {
       display: flex;
       justify-content: space-between;
@@ -64,108 +71,139 @@
       padding: 6px 12px;
       background: transparent;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .top-btn:hover { opacity: 1; background: #222; }
+    .top-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* Section Label */
-
+    /* Section label */
     .presentation-name {
       text-align: left;
       color: var(--title-color);
       font-size: 1.3rem;
       font-weight: 700;
-      margin: 4px 0 8px;
+      margin: 4px 0 10px;
     }
 
-    /* Score Box */
-
+    /* Score box */
     .score-box {
-      background: #ffffff;
-      color: #000000;
-      border-radius: 8px;
+      background: var(--card-bg);
+      color: var(--card-text);
+      border-radius: 10px;
       padding: 10px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      max-height: calc(100vh - 230px);
+      gap: 8px;
+      max-height: calc(100vh - 270px);
       overflow-y: auto;
+      border: 1px solid var(--border);
     }
 
-    .score-header {
-      display: grid;
-      grid-template-columns: 1.3fr 0.7fr 1.4fr;
-      gap: 6px;
-      font-size: 0.75rem;
-      color: #666;
-      padding-bottom: 4px;
-      border-bottom: 1px solid #e0e0e0;
-      text-transform: uppercase;
+    .empty-state {
+      color: #777;
+      padding: 6px 4px 10px;
+      font-size: 0.95rem;
     }
 
-    .score-rows { display: flex; flex-direction: column; gap: 4px; }
-
-    .score-row {
-      display: grid;
-      grid-template-columns: 1.3fr 0.7fr 1.4fr;
-      gap: 6px;
-      padding: 5px 4px;
-      border-radius: 6px;
+    /* Row card (Option B) */
+    .row-card {
       background: #f7f7f7;
+      border: 1px solid #e9e9e9;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
-    .score-row:nth-child(odd) { background: #f0f0f0; }
-
-    /* Name Input */
-
-    .name-cell { display: flex; align-items: center; min-width: 0; }
+    .row-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
 
     .name-input {
-      flex: 1;
-      border-radius: 999px;
-      border: 1px solid #cccccc;
-      padding: 4px 8px;
-      font-size: 0.85rem;
       width: 100%;
+      border-radius: 999px;
+      border: 1px solid var(--pill-border);
+      padding: 8px 10px;
+      font-size: 0.95rem;
+      outline: none;
+      background: #fff;
     }
 
-    /* Score Cell */
-
-    .score-cell {
-      text-align: center;
+    .score-pill {
+      min-width: 64px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid var(--pill-border);
       font-variant-numeric: tabular-nums;
-      font-size: 1rem;
-      font-weight: 600;
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-align: right;
+      white-space: nowrap;
     }
 
-    /* Controls */
+    /* Bottom segmented controls row */
+    .row-bottom {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
 
-    .controls-cell { display: flex; flex-direction: column; gap: 4px; }
+    .seg {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.2fr 0.9fr 0.9fr;
+      gap: 8px;
+      align-items: center;
+    }
 
-    .controls-row { display: flex; gap: 4px; }
-
-    .small-btn {
-      flex: 1;
+    .seg-btn {
       border-radius: 999px;
       border: 1px solid #bbbbbb;
       background: #ffffff;
-      font-size: 0.8rem;
-      padding: 3px 8px;
+      font-size: 0.85rem;
+      padding: 8px 10px;
       cursor: pointer;
       text-align: center;
+      user-select: none;
+      transition: transform 0.07s ease, filter 0.07s ease;
     }
 
-    .small-btn:hover { background: #eeeeee; }
+    .seg-btn:active {
+      transform: scale(0.97);
+      filter: brightness(0.92);
+    }
 
-    .custom-amount {
+    .seg-btn:hover { background: #eeeeee; }
+
+    .seg-input {
       width: 100%;
       border-radius: 999px;
       border: 1px solid #cccccc;
-      padding: 3px 8px;
-      font-size: 0.8rem;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      outline: none;
+      background: #fff;
     }
 
-    .buttons-single { margin-top: 6px; }
+    .seg-danger {
+      border-color: rgba(255, 82, 82, 0.55);
+      color: var(--danger);
+      background: var(--danger-bg);
+    }
+
+    .seg-danger:hover {
+      background: rgba(255, 82, 82, 0.16);
+    }
+
+    /* Add row button */
+    .buttons-single { margin-top: 10px; }
 
     button.btn-add {
       width: 100%;
@@ -179,22 +217,181 @@
       cursor: pointer;
       transition: transform 0.07s ease, filter 0.07s ease;
     }
+
     button.btn-add:active {
       transform: scale(0.97);
       filter: brightness(0.9);
     }
 
+    /* Queue card */
+    .queue-wrap {
+      margin-top: 10px;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 12px;
+      color: #fff;
+    }
+
+    .queue-title {
+      font-size: 0.95rem;
+      color: var(--status-grey);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .queue-value {
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .queue-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .queue-btn {
+      border: 1px solid #444;
+      background: transparent;
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      opacity: 0.9;
+      transition: transform 0.07s ease, filter 0.07s ease;
+    }
+
+    .queue-btn:hover { opacity: 1; background: #222; }
+    .queue-btn:active { transform: scale(0.98); filter: brightness(0.95); }
+
+    .queue-input {
+      grid-column: 1 / -1;
+      border-radius: 999px;
+      border: 1px solid #444;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      outline: none;
+      background: #0b0b0b;
+      color: #fff;
+    }
+
+    .queue-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .queue-apply {
+      background: var(--btn-next-bg);
+      color: var(--btn-next-text);
+      border: none;
+      border-radius: 999px;
+      padding: 12px 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.07s ease, filter 0.07s ease;
+    }
+    .queue-apply:active { transform: scale(0.98); filter: brightness(0.92); }
+    .queue-apply:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .queue-clear {
+      border: 1px solid rgba(255,255,255,0.25);
+      background: transparent;
+      color: #fff;
+      border-radius: 999px;
+      padding: 12px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      opacity: 0.9;
+    }
+    .queue-clear:hover { opacity: 1; background: #222; }
+
+    /* Status */
     .status {
       text-align: center;
       margin-top: 8px;
       opacity: 0.8;
       min-height: 1.1em;
     }
+
+    /* Modal (match index.html style) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .modal-card {
+      background: #111;
+      border-radius: 12px;
+      padding: 16px;
+      width: min(92vw, 360px);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.6);
+      border: 1px solid #2a2a2a;
+    }
+
+    .modal-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .modal-sub {
+      font-size: 0.92rem;
+      color: var(--status-grey);
+      margin-bottom: 12px;
+    }
+
+    .modal-select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #444;
+      background: #0b0b0b;
+      color: #fff;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .modal-footer {
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .modal-btn {
+      border: 1px solid #444;
+      background: transparent;
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .modal-btn:hover { background: #222; }
+
+    .modal-primary {
+      border: none;
+      background: var(--btn-next-bg);
+      color: var(--btn-next-text);
+      font-weight: 700;
+    }
   </style>
 </head>
+
 <body>
   <div class="wrapper">
-
     <!-- Top bar -->
     <div class="top-row">
       <div class="page-title">ICAS Score</div>
@@ -208,17 +405,8 @@
 
     <!-- Score container -->
     <div class="score-box">
-      <div class="score-header">
-        <div>Name</div>
-        <div>Score</div>
-        <div>Controls</div>
-      </div>
-
-      <div id="scoreRows" class="score-rows"></div>
-
-      <div id="emptyState" class="empty-state" style="color:#777;">
-        No rows yet. Add one below.
-      </div>
+      <div id="scoreRows"></div>
+      <div id="emptyState" class="empty-state">No rows yet. Add one below.</div>
     </div>
 
     <!-- Add row button -->
@@ -226,7 +414,41 @@
       <button id="addRowBtn" class="btn-add">Add Row</button>
     </div>
 
+    <!-- Queue -->
+    <div class="queue-wrap">
+      <div class="queue-title">
+        <div>Queue</div>
+        <div class="queue-value" id="queueValue">0</div>
+      </div>
+
+      <div class="queue-controls">
+        <button type="button" class="queue-btn" id="queuePlus">+1</button>
+        <button type="button" class="queue-btn" id="queueMinus">-1</button>
+        <input type="number" class="queue-input" id="queueCustom" placeholder="±N (adds to queue)" step="1" />
+      </div>
+
+      <div class="queue-actions">
+        <button type="button" class="queue-clear" id="queueClear">Clear</button>
+        <button type="button" class="queue-apply" id="queueApply">Apply to…</button>
+      </div>
+    </div>
+
     <div id="statusText" class="status">Ready</div>
+  </div>
+
+  <!-- Apply Modal -->
+  <div id="applyOverlay" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-title">Apply queue</div>
+      <div class="modal-sub">Choose who should receive <span id="applyAmountLabel"></span> points.</div>
+
+      <select id="applySelect" class="modal-select"></select>
+
+      <div class="modal-footer">
+        <button type="button" class="modal-btn" id="applyCancel">Cancel</button>
+        <button type="button" class="modal-btn modal-primary" id="applyConfirm">Apply</button>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -237,22 +459,37 @@
   const SCORE_POST = `${API_BASE}/score`;
 
   // ====== SHARED STATE ======
-  // This entire object is what we GET/POST to the backend.
-  // Backend currently stores it as-is, so Undo will be shared too.
   let state = { rows: [], history: [] };
 
-  // Local helpers
-  let lastRemoteJson = "";      // last applied remote JSON string
-  let pendingRemote = null;     // hold remote updates while user is editing
-  let isPosting = false;        // prevent re-entrant posts
+  // Sync helpers
+  let lastRemoteJson = "";
+  let pendingRemote = null;
+  let isPosting = false;
   let pollTimer = null;
 
+  // Local-only queue
+  let queue = 0;
+
+  // Elements
   const scoreRowsEl = document.getElementById("scoreRows");
   const emptyStateEl = document.getElementById("emptyState");
   const undoBtn = document.getElementById("undoBtn");
   const clearBtn = document.getElementById("clearBtn");
   const addRowBtn = document.getElementById("addRowBtn");
   const statusText = document.getElementById("statusText");
+
+  const queueValueEl = document.getElementById("queueValue");
+  const queuePlusBtn = document.getElementById("queuePlus");
+  const queueMinusBtn = document.getElementById("queueMinus");
+  const queueCustomEl = document.getElementById("queueCustom");
+  const queueClearBtn = document.getElementById("queueClear");
+  const queueApplyBtn = document.getElementById("queueApply");
+
+  const applyOverlay = document.getElementById("applyOverlay");
+  const applySelect = document.getElementById("applySelect");
+  const applyCancel = document.getElementById("applyCancel");
+  const applyConfirm = document.getElementById("applyConfirm");
+  const applyAmountLabel = document.getElementById("applyAmountLabel");
 
   function setStatus(msg, timeoutMs = 900) {
     statusText.textContent = msg;
@@ -273,29 +510,27 @@
       })).filter(r => r.id);
     }
     if (obj && Array.isArray(obj.history)) {
-      // history = array of rows snapshots
-      safe.history = obj.history
-        .filter(h => Array.isArray(h))
-        .slice(-100); // keep last 100
+      safe.history = obj.history.filter(h => Array.isArray(h)).slice(-100);
     }
     return safe;
-  }
-
-  function currentJson() {
-    return JSON.stringify(state);
   }
 
   function isUserEditing() {
     const el = document.activeElement;
     if (!el) return false;
-    return el.classList?.contains("name-input") || el.classList?.contains("custom-amount");
+    return el.classList?.contains("name-input") ||
+           el.classList?.contains("seg-input") ||
+           el.classList?.contains("queue-input");
+  }
+
+  function updateQueueUI() {
+    queueValueEl.textContent = String(queue);
+    queueApplyBtn.disabled = (queue === 0) || (state.rows.length === 0);
   }
 
   function pushHistory() {
     state.history = Array.isArray(state.history) ? state.history : [];
-    const snapshot = JSON.parse(JSON.stringify(state.rows));
-    state.history.push(snapshot);
-    // cap
+    state.history.push(JSON.parse(JSON.stringify(state.rows)));
     if (state.history.length > 100) state.history = state.history.slice(-100);
     updateUndoButton();
   }
@@ -310,9 +545,8 @@
     try {
       const res = await fetch(SCORE_GET, { cache: "no-cache" });
       if (!res.ok) throw new Error("Bad response");
-      const remote = normalizeIncoming(await res.json());
-      return remote;
-    } catch (e) {
+      return normalizeIncoming(await res.json());
+    } catch {
       return null;
     }
   }
@@ -328,8 +562,8 @@
         body
       });
       if (!res.ok) throw new Error("Bad response");
-      lastRemoteJson = body; // assume backend now matches
-    } catch (e) {
+      lastRemoteJson = body;
+    } catch {
       setStatus("Sync error", 1200);
     } finally {
       isPosting = false;
@@ -343,12 +577,10 @@
     const remoteJson = JSON.stringify(remote);
     if (remoteJson === lastRemoteJson) return;
 
-    // If user is typing, don't clobber fields; apply when editing ends.
     if (isUserEditing()) {
       pendingRemote = remote;
       return;
     }
-
     applyRemote(remote);
   }
 
@@ -357,23 +589,22 @@
     lastRemoteJson = JSON.stringify(state);
     pendingRemote = null;
     render();
+    updateQueueUI();
   }
 
   function applyPendingRemoteIfAny() {
-    if (pendingRemote && !isUserEditing()) {
-      applyRemote(pendingRemote);
-    }
+    if (pendingRemote && !isUserEditing()) applyRemote(pendingRemote);
   }
 
-  // ====== MUTATIONS (shared) ======
+  // ====== MUTATIONS ======
   function undo() {
     if (!state.history || !state.history.length) return;
-    const prevRows = state.history.pop();
-    state.rows = Array.isArray(prevRows) ? prevRows : [];
+    state.rows = state.history.pop() || [];
     updateUndoButton();
     render();
     postState();
     setStatus("Undo");
+    updateQueueUI();
   }
 
   function clearAll() {
@@ -384,6 +615,7 @@
     render();
     postState();
     setStatus("Cleared");
+    updateQueueUI();
   }
 
   function addRow() {
@@ -396,16 +628,12 @@
     render();
     postState();
     setStatus("Added row");
+    updateQueueUI();
 
-    // focus the new row name input
     requestAnimationFrame(() => {
       const last = state.rows[state.rows.length - 1];
-      if (!last) return;
-      const input = scoreRowsEl.querySelector(`.score-row[data-id="${last.id}"] .name-input`);
-      if (input) {
-        input.focus();
-        input.select();
-      }
+      const input = scoreRowsEl.querySelector(`.row-card[data-id="${last.id}"] .name-input`);
+      if (input) { input.focus(); input.select(); }
     });
   }
 
@@ -438,12 +666,82 @@
 
   function applyCustom(id, inputEl) {
     const val = Number(inputEl.value);
-    if (!Number.isFinite(val) || val === 0) {
-      inputEl.value = "";
-      return;
-    }
+    if (!Number.isFinite(val) || val === 0) { inputEl.value = ""; return; }
     updateScore(id, val);
     inputEl.value = "";
+  }
+
+  function clearRow(id) {
+    const row = state.rows.find(r => r.id === id);
+    if (!row) return;
+    if ((Number(row.score) || 0) === 0) return;
+
+    pushHistory();
+    row.score = 0;
+    render();
+    postState();
+    setStatus("Row cleared");
+  }
+
+  function deleteRow(id) {
+    const row = state.rows.find(r => r.id === id);
+    if (!row) return;
+    const label = row.name ? `"${row.name}"` : "this row";
+    if (!confirm(`Delete ${label}?`)) return;
+
+    pushHistory();
+    state.rows = state.rows.filter(r => r.id !== id);
+    render();
+    postState();
+    setStatus("Row deleted");
+    updateQueueUI();
+  }
+
+  // ====== QUEUE (LOCAL ONLY) ======
+  function queueAdd(n) {
+    const d = Number(n);
+    if (!Number.isFinite(d) || d === 0) return;
+    queue += d;
+    updateQueueUI();
+    setStatus(d > 0 ? `Queue +${d}` : `Queue ${d}`);
+  }
+
+  function queueApplyCustom() {
+    const val = Number(queueCustomEl.value);
+    queueCustomEl.value = "";
+    if (!Number.isFinite(val) || val === 0) return;
+    queueAdd(val);
+  }
+
+  function openApplyModal() {
+    if (queue === 0 || state.rows.length === 0) return;
+
+    applySelect.innerHTML = "";
+    state.rows.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r.id;
+      opt.textContent = r.name ? r.name : "(Unnamed)";
+      applySelect.appendChild(opt);
+    });
+
+    applyAmountLabel.textContent = `${queue > 0 ? "+" : ""}${queue}`;
+    applyOverlay.style.display = "flex";
+  }
+
+  function closeApplyModal() {
+    applyOverlay.style.display = "none";
+  }
+
+  function confirmApplyModal() {
+    const id = applySelect.value;
+    if (!id) return;
+
+    // Apply to server-held state, then clear local queue
+    updateScore(id, queue);
+    queue = 0;
+    updateQueueUI();
+    closeApplyModal();
+    setStatus("Applied");
   }
 
   // ====== RENDER ======
@@ -457,13 +755,13 @@
     }
 
     state.rows.forEach(row => {
-      const rowEl = document.createElement("div");
-      rowEl.className = "score-row";
-      rowEl.dataset.id = row.id;
+      const card = document.createElement("div");
+      card.className = "row-card";
+      card.dataset.id = row.id;
 
-      // NAME CELL
-      const nameCell = document.createElement("div");
-      nameCell.className = "name-cell";
+      // Top row: Name + Score
+      const top = document.createElement("div");
+      top.className = "row-top";
 
       const nameInput = document.createElement("input");
       nameInput.type = "text";
@@ -471,72 +769,77 @@
       nameInput.value = row.name || "";
       nameInput.placeholder = "Name";
 
-      // Auto-apply rename on Enter or blur
       nameInput.addEventListener("keydown", e => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          nameInput.blur();
-        }
+        if (e.key === "Enter") { e.preventDefault(); nameInput.blur(); }
       });
       nameInput.addEventListener("blur", () => {
         updateName(row.id, nameInput.value);
         applyPendingRemoteIfAny();
       });
 
-      nameCell.appendChild(nameInput);
+      const scorePill = document.createElement("div");
+      scorePill.className = "score-pill";
+      scorePill.textContent = String(row.score ?? 0);
 
-      // SCORE CELL
-      const scoreCell = document.createElement("div");
-      scoreCell.className = "score-cell";
-      scoreCell.textContent = String(row.score ?? 0);
+      top.appendChild(nameInput);
+      top.appendChild(scorePill);
 
-      // CONTROLS CELL
-      const controlsCell = document.createElement("div");
-      controlsCell.className = "controls-cell";
+      // Bottom segmented controls
+      const bottom = document.createElement("div");
+      bottom.className = "row-bottom";
 
-      const rowBtns = document.createElement("div");
-      rowBtns.className = "controls-row";
-
-      const plusBtn = document.createElement("button");
-      plusBtn.className = "small-btn";
-      plusBtn.type = "button";
-      plusBtn.textContent = "+1";
-      plusBtn.onclick = () => updateScore(row.id, 1);
+      const seg = document.createElement("div");
+      seg.className = "seg";
 
       const minusBtn = document.createElement("button");
-      minusBtn.className = "small-btn";
       minusBtn.type = "button";
+      minusBtn.className = "seg-btn";
       minusBtn.textContent = "-1";
       minusBtn.onclick = () => updateScore(row.id, -1);
 
-      rowBtns.appendChild(plusBtn);
-      rowBtns.appendChild(minusBtn);
+      const plusBtn = document.createElement("button");
+      plusBtn.type = "button";
+      plusBtn.className = "seg-btn";
+      plusBtn.textContent = "+1";
+      plusBtn.onclick = () => updateScore(row.id, 1);
 
-      const customInput = document.createElement("input");
-      customInput.type = "number";
-      customInput.className = "custom-amount";
-      customInput.placeholder = "±N";
-      customInput.step = "1";
+      const custom = document.createElement("input");
+      custom.type = "number";
+      custom.className = "seg-input";
+      custom.placeholder = "±N";
+      custom.step = "1";
 
-      customInput.addEventListener("keydown", e => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          customInput.blur();
-        }
+      custom.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); custom.blur(); }
       });
-      customInput.addEventListener("blur", () => {
-        applyCustom(row.id, customInput);
+      custom.addEventListener("blur", () => {
+        applyCustom(row.id, custom);
         applyPendingRemoteIfAny();
       });
 
-      controlsCell.appendChild(rowBtns);
-      controlsCell.appendChild(customInput);
+      const clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.className = "seg-btn";
+      clearBtn.textContent = "Clear";
+      clearBtn.onclick = () => clearRow(row.id);
 
-      rowEl.appendChild(nameCell);
-      rowEl.appendChild(scoreCell);
-      rowEl.appendChild(controlsCell);
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "seg-btn seg-danger";
+      delBtn.textContent = "Delete";
+      delBtn.onclick = () => deleteRow(row.id);
 
-      scoreRowsEl.appendChild(rowEl);
+      seg.appendChild(minusBtn);
+      seg.appendChild(plusBtn);
+      seg.appendChild(custom);
+      seg.appendChild(clearBtn);
+      seg.appendChild(delBtn);
+
+      bottom.appendChild(seg);
+
+      card.appendChild(top);
+      card.appendChild(bottom);
+      scoreRowsEl.appendChild(card);
     });
 
     updateUndoButton();
@@ -548,6 +851,23 @@
     clearBtn.onclick = clearAll;
     addRowBtn.onclick = addRow;
 
+    queuePlusBtn.onclick = () => queueAdd(1);
+    queueMinusBtn.onclick = () => queueAdd(-1);
+    queueClearBtn.onclick = () => { queue = 0; updateQueueUI(); setStatus("Queue cleared"); };
+
+    queueCustomEl.addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); queueCustomEl.blur(); }
+    });
+    queueCustomEl.addEventListener("blur", () => queueApplyCustom());
+
+    queueApplyBtn.onclick = openApplyModal;
+
+    applyCancel.onclick = closeApplyModal;
+    applyConfirm.onclick = confirmApplyModal;
+    applyOverlay.addEventListener("click", (e) => {
+      if (e.target === applyOverlay) closeApplyModal();
+    });
+
     undoBtn.disabled = true;
     undoBtn.style.opacity = 0.5;
 
@@ -558,20 +878,17 @@
       applyRemote(remote);
       setStatus("Connected ✔");
     } else {
-      // If backend is down, keep empty UI (still usable but won't sync)
       state = { rows: [], history: [] };
-      lastRemoteJson = currentJson();
+      lastRemoteJson = JSON.stringify(state);
       render();
       setStatus("Backend offline", 1200);
     }
 
-    // Poll for sync (lightweight)
+    updateQueueUI();
+
     pollTimer = setInterval(pollLoop, 800);
 
-    // If user finishes editing and we had deferred remote changes, apply them
-    document.addEventListener("focusin", () => {});
     document.addEventListener("focusout", () => {
-      // focusout fires before blur sometimes; let blur handler run first
       setTimeout(applyPendingRemoteIfAny, 0);
     });
   }
