@@ -98,7 +98,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: calc(100vh - 270px);
+      max-height: calc(100vh - 300px);
       overflow-y: auto;
       border: 1px solid var(--border);
       -webkit-overflow-scrolling: touch;
@@ -152,11 +152,7 @@
       user-select: none;
     }
 
-    .row-bottom {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
+    .row-bottom { display: grid; grid-template-columns: 1fr; gap: 8px; }
 
     .seg {
       display: grid;
@@ -179,11 +175,7 @@
       touch-action: manipulation;
     }
 
-    .seg-btn:active {
-      transform: scale(0.97);
-      filter: brightness(0.92);
-    }
-
+    .seg-btn:active { transform: scale(0.97); filter: brightness(0.92); }
     .seg-btn:hover { background: #eeeeee; }
 
     .seg-input {
@@ -202,7 +194,6 @@
       color: var(--danger);
       background: var(--danger-bg);
     }
-
     .seg-danger:hover { background: rgba(255, 82, 82, 0.16); }
 
     /* Add row button */
@@ -222,11 +213,7 @@
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
-
-    button.btn-add:active {
-      transform: scale(0.97);
-      filter: brightness(0.9);
-    }
+    button.btn-add:active { transform: scale(0.97); filter: brightness(0.9); }
 
     /* Queue card */
     .queue-wrap {
@@ -241,20 +228,30 @@
     .queue-title {
       font-size: 0.95rem;
       color: var(--status-grey);
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .queue-value {
+    .queue-total {
       font-variant-numeric: tabular-nums;
       font-weight: 900;
       color: #fff;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
+      letter-spacing: 0.2px;
     }
 
-    .queue-controls {
+    /* Queue row 1: +1, -1, Clear */
+    .queue-row1 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    /* Queue row 2: ±N input + select (with caret) */
+    .queue-row2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
@@ -267,19 +264,18 @@
       color: #fff;
       border-radius: 999px;
       padding: 12px 12px;
-      font-weight: 700;
+      font-weight: 800;
       cursor: pointer;
-      opacity: 0.9;
+      opacity: 0.92;
       transition: transform 0.07s ease, filter 0.07s ease;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
-
     .queue-btn:hover { opacity: 1; background: #222; }
     .queue-btn:active { transform: scale(0.98); filter: brightness(0.95); }
 
     .queue-input {
-      grid-column: 1 / -1;
+      width: 100%;
       border-radius: 999px;
       border: 1px solid #444;
       padding: 12px 12px;
@@ -290,69 +286,67 @@
       -webkit-appearance: none;
     }
 
-    .queue-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .queue-apply {
-      background: var(--btn-next-bg);
-      color: var(--btn-next-text);
-      border: none;
-      border-radius: 999px;
-      padding: 12px 12px;
-      font-weight: 800;
-      cursor: pointer;
-      transition: transform 0.07s ease, filter 0.07s ease;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-    }
-
-    .queue-apply:active { transform: scale(0.98); filter: brightness(0.92); }
-    .queue-apply:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .queue-clear {
-      border: 1px solid rgba(255,255,255,0.25);
-      background: transparent;
-      color: #fff;
-      border-radius: 999px;
-      padding: 12px 12px;
-      font-weight: 700;
-      cursor: pointer;
-      opacity: 0.9;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-    }
-
-    .queue-clear:hover { opacity: 1; background: #222; }
-
-    /* Inline Apply (no extra click) */
-    .apply-row {
-      margin-top: 10px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: center;
+    .select-wrap {
+      position: relative;
+      width: 100%;
     }
 
     .apply-select {
       width: 100%;
       border-radius: 999px;
-      border: 1px solid #444;
+      border: 1px solid #666;
       background: #0b0b0b;
       color: #fff;
-      padding: 12px 12px;
+      padding: 12px 40px 12px 14px; /* leave room for caret */
       font-size: 16px; /* iOS zoom prevention */
       outline: none;
       -webkit-appearance: none;
+      appearance: none;
+      font-weight: 800;
+      cursor: pointer;
     }
+
+    .select-wrap::after {
+      content: "▾";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #ffffff;
+      opacity: 0.85;
+      pointer-events: none;
+      font-size: 1.05rem;
+      font-weight: 900;
+    }
+
+    /* Apply button (full width) */
+    .queue-apply {
+      width: 100%;
+      background: var(--btn-next-bg);
+      color: var(--btn-next-text);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 12px;
+      font-size: 1.05rem;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.07s ease, filter 0.07s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .queue-apply:active { transform: scale(0.98); filter: brightness(0.92); }
+    .queue-apply:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .status {
       text-align: center;
       margin-top: 8px;
       opacity: 0.8;
       min-height: 1.1em;
+    }
+
+    @media (max-width: 420px) {
+      .seg { grid-template-columns: 1fr 1fr 1.1fr 0.9fr 0.9fr; }
+      .score-display { font-size: 1.18rem; }
     }
   </style>
 </head>
@@ -385,27 +379,26 @@
     <div class="queue-wrap">
       <div class="queue-title">
         <div>Queue</div>
-        <div class="queue-value" id="queueValue">0</div>
+        <div class="queue-total" id="queueTotal">+ 0</div>
       </div>
 
-      <div class="queue-controls">
+      <!-- Row 1: +1, -1, Clear -->
+      <div class="queue-row1">
         <button type="button" class="queue-btn" id="queuePlus">+1</button>
         <button type="button" class="queue-btn" id="queueMinus">-1</button>
+        <button type="button" class="queue-btn" id="queueClear">Clear</button>
+      </div>
+
+      <!-- Row 2: ±N input + selector -->
+      <div class="queue-row2">
         <input type="number" class="queue-input" id="queueCustom" placeholder="±N (adds to queue)" step="1" />
-      </div>
-
-      <div class="queue-actions">
-        <button type="button" class="queue-clear" id="queueClear">Clear</button>
-        <button type="button" class="queue-apply" id="queueApply">Apply</button>
-      </div>
-
-      <!-- One-click target selection (no modal) -->
-      <div class="apply-row">
-        <select id="applySelect" class="apply-select"></select>
-        <div style="color: var(--status-grey); font-weight:700; font-variant-numeric: tabular-nums;">
-          <span id="applyAmountLabel">+0</span>
+        <div class="select-wrap">
+          <select id="applySelect" class="apply-select"></select>
         </div>
       </div>
+
+      <!-- Apply -->
+      <button type="button" class="queue-apply" id="queueApply">Apply</button>
     </div>
 
     <div id="statusText" class="status">Ready</div>
@@ -423,6 +416,7 @@
   let pendingRemote = null;
   let isPosting = false;
 
+  // Local-only queue
   let queue = 0;
 
   const scoreRowsEl = document.getElementById("scoreRows");
@@ -432,15 +426,13 @@
   const addRowBtn = document.getElementById("addRowBtn");
   const statusText = document.getElementById("statusText");
 
-  const queueValueEl = document.getElementById("queueValue");
+  const queueTotalEl = document.getElementById("queueTotal");
   const queuePlusBtn = document.getElementById("queuePlus");
   const queueMinusBtn = document.getElementById("queueMinus");
   const queueCustomEl = document.getElementById("queueCustom");
   const queueClearBtn = document.getElementById("queueClear");
   const queueApplyBtn = document.getElementById("queueApply");
-
   const applySelect = document.getElementById("applySelect");
-  const applyAmountLabel = document.getElementById("applyAmountLabel");
 
   function setStatus(msg, timeoutMs = 900) {
     statusText.textContent = msg;
@@ -475,10 +467,15 @@
            el.classList?.contains("apply-select");
   }
 
+  function formatQueue(q) {
+    const sign = q >= 0 ? "+" : "-";
+    return `${sign} ${Math.abs(q)}`;
+  }
+
   function updateQueueUI() {
-    queueValueEl.textContent = String(queue);
-    applyAmountLabel.textContent = `${queue > 0 ? "+" : ""}${queue}`;
-    queueApplyBtn.disabled = (queue === 0) || (state.rows.length === 0) || !applySelect.value;
+    queueTotalEl.textContent = formatQueue(queue);
+    const hasTarget = !!applySelect.value;
+    queueApplyBtn.disabled = (queue === 0) || (state.rows.length === 0) || !hasTarget;
   }
 
   function updateApplySelect() {
@@ -501,7 +498,6 @@
       applySelect.appendChild(opt);
     });
 
-    // keep previous selection if still exists
     if (prev && state.rows.some(r => r.id === prev)) {
       applySelect.value = prev;
     } else {
@@ -578,6 +574,7 @@
     if (pendingRemote && !isUserEditing()) applyRemote(pendingRemote);
   }
 
+  // ====== MUTATIONS ======
   function undo() {
     if (!state.history || !state.history.length) return;
     state.rows = state.history.pop() || [];
@@ -706,6 +703,7 @@
     setStatus("Applied");
   }
 
+  // ====== RENDER ======
   function render() {
     scoreRowsEl.innerHTML = "";
 
@@ -801,6 +799,7 @@
     updateUndoButton();
   }
 
+  // ====== INIT ======
   async function init() {
     undoBtn.onclick = undo;
     clearBtn.onclick = clearAll;
@@ -836,7 +835,7 @@
       setStatus("Backend offline", 1200);
     }
 
-    // sync poll
+    // Sync poll
     setInterval(pollLoop, 800);
 
     document.addEventListener("focusout", () => {
