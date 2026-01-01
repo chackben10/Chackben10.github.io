@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Full Screen Countdown</title>
+
+  <!-- Antonio -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700;800&display=swap" rel="stylesheet">
+
+  <!-- Norwester -->
+  <style>
+    @font-face {
+      font-family: 'Norwester';
+      src: url("https://cdn.jsdelivr.net/gh/ryanoasis/nerd-fonts@master/patched-fonts/Norwester/Norwester-Regular.otf")
+           format("opentype");
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root{
+      /* ===== SCALE CONTROL ===== */
+      --scale: 1.75; /* 1.5 – 2.0 sweet spot */
+
+      --bg: transparent;
+      --fg: #fff;
+      --top-opacity: 0.90;
+      --panel: rgba(255,255,255,0.15);
+
+      --radius: 16px;
+      --pad: 20px;
+
+      --time-w: clamp(420px, 60vw, 740px);
+      --time-h: clamp(110px, 18vw, 190px);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+
+    body{
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .wrap{
+      display: grid;
+      gap: 18px;
+      justify-items: center;
+      text-align: center;
+
+      /* 🔑 SCALE EVERYTHING */
+      transform: scale(var(--scale));
+      transform-origin: center;
+    }
+
+    .topline{
+      font-family: "Antonio", system-ui, sans-serif;
+      font-weight: 700;
+      font-size: clamp(22px, 3.2vw, 40px);
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,var(--top-opacity));
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .panel{
+      height: var(--time-h);
+      width: var(--time-w);
+      border-radius: var(--radius);
+      background: var(--panel);
+      display: grid;
+      place-items: center;
+      padding: var(--pad);
+    }
+
+    .countdown{
+      font-family: "Norwester", "Antonio", system-ui, sans-serif;
+      font-size: clamp(64px, 10vw, 120px);
+      letter-spacing: 0.04em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1, "lnum" 1;
+      white-space: nowrap;
+    }
+
+    .blink {
+      animation: blink 1s step-start 0s infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div id="topline" class="topline">COUNTDOWN</div>
+
+    <div class="panel">
+      <div id="countdown" class="countdown">--:--:--</div>
+    </div>
+  </div>
+
+  <script>
+    // Intended URL:
+    //   https://icas-clicker.work/displays/full-screen-countdown
+    // Optional:
+    //   ?time=12:00  (noon)
+    // Default (no param):
+    //   00:00 (midnight)
+
+    const toplineEl   = document.getElementById("topline");
+    const countdownEl = document.getElementById("countdown");
+
+    function pad2(n){ return String(n).padStart(2, "0"); }
+
+    function parseTimeParam() {
+      const sp = new URLSearchParams(location.search);
+      const t = (sp.get("time") || "00:00").trim();
+
+      // Accept H:MM or HH:MM
+      const m = t.match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return { hours: 0, minutes: 0, label: "12:00 AM" };
+
+      let hh = Number(m[1]);
+      let mm = Number(m[2]);
+      if (!Number.isFinite(hh) || !Number.isFinite(mm)) return { hours: 0, minutes: 0, label: "12:00 AM" };
+      hh = Math.min(Math.max(hh, 0), 23);
+      mm = Math.min(Math.max(mm, 0), 59);
+
+      // Build a nice label (12-hour)
+      const ampm = hh >= 12 ? "PM" : "AM";
+      const h12 = (hh % 12) || 12;
+      const label = `${h12}:${pad2(mm)} ${ampm}`;
+
+      return { hours: hh, minutes: mm, label };
+    }
+
+    const target = parseTimeParam();
+
+    function getNextTargetDate(now) {
+      const d = new Date(now);
+      d.setHours(target.hours, target.minutes, 0, 0);
+
+      // If we've already passed it today, count down to tomorrow's target time.
+      if (now.getTime() >= d.getTime()) {
+        d.setDate(d.getDate() + 1);
+      }
+      return d;
+    }
+
+    let nextTarget = getNextTargetDate(new Date());
+    toplineEl.textContent = `COUNTDOWN TO ${target.label}`.toUpperCase();
+
+    function setBlink(on) {
+      countdownEl.classList.toggle("blink", !!on);
+    }
+
+    function tick(){
+      const now = new Date();
+      // Recompute target if day rolled over / time passed (keeps it robust)
+      if (now.getTime() >= nextTarget.getTime() + 1500) {
+        nextTarget = getNextTargetDate(now);
+      }
+
+      let diffMs = nextTarget.getTime() - now.getTime();
+
+      if (diffMs <= 0) {
+        setBlink(false);
+        toplineEl.textContent = "—";
+        countdownEl.textContent = "HAPPY NEW YEAR!";
+        return;
+      }
+
+      const diffSec = Math.ceil(diffMs / 1000);
+
+      // Flash in the last 10 seconds
+      setBlink(diffSec <= 10);
+
+      const hours = Math.floor(diffSec / 3600);
+      const mins  = Math.floor((diffSec % 3600) / 60);
+      const secs  = diffSec % 60;
+
+      countdownEl.textContent = `${pad2(hours)}:${pad2(mins)}:${pad2(secs)}`;
+    }
+
+    tick();
+    setTimeout(() => {
+      tick();
+      setInterval(tick, 250); // smooth + accurate near the end
+    }, 1000 - new Date().getMilliseconds());
+  </script>
+</body>
+</html>
