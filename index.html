@@ -162,6 +162,17 @@
       word-break: break-word;
     }
 
+    .slide-notes {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--border-color);
+      font-size: 0.85rem;
+      line-height: 1.25;
+      color: var(--status-grey);
+      white-space: normal;
+      word-break: break-word;
+    }
+
     .slide-thumb {
       margin-top: 6px;
       width: 100%;
@@ -261,7 +272,7 @@
       border: 1px solid var(--border-color);
       border-radius: 10px;
       overflow: hidden;
-      margin-top: 4px; /* was 10px: halved-ish spacing between title/label and segment UI */
+      margin-top: 4px;
     }
 
     .segment button {
@@ -357,6 +368,18 @@
         </div>
       </div>
 
+      <!-- NEW: Show Slide Notes toggle -->
+      <div class="settings-row" style="margin-top: 12px;">
+        <span>Show Slide Notes</span>
+        <label class="switch">
+          <input type="checkbox" id="showNotesToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="settings-subtitle">
+        Shows slide notes under slide text (if available)
+      </div>
+
       <div class="settings-row-column">
         <label>Text Size</label>
         <div style="display:flex; width:100%; gap:8px; align-items:center;">
@@ -390,6 +413,9 @@
 
     // Auto-scroll
     const AUTO_SCROLL_KEY = "icas-auto-scroll";
+
+    // NEW: Show slide notes
+    const SHOW_NOTES_KEY = "icas-show-slide-notes";
 
     let pendingSelectedIndex = null;
     let lastSlideIndexForAutoScroll = null;
@@ -455,7 +481,6 @@
     // Preview preference helpers
     function getPreviewPreference() {
       const v = localStorage.getItem(PREVIEW_PREF_KEY);
-      // NEW: default to text when nothing saved
       return (v === "text" || v === "image") ? v : "text";
     }
     function setPreviewPreference(v) {
@@ -465,6 +490,14 @@
       document.querySelectorAll("#previewPreferenceSegment button").forEach(btn => {
         btn.classList.toggle("active", btn.dataset.pref === pref);
       });
+    }
+
+    // NEW: show notes helpers (default OFF)
+    function getShowNotes() {
+      return localStorage.getItem(SHOW_NOTES_KEY) === "true";
+    }
+    function setShowNotes(v) {
+      localStorage.setItem(SHOW_NOTES_KEY, v ? "true" : "false");
     }
 
     const thumbCache = {};
@@ -508,7 +541,8 @@
           pres.presentation.groups.forEach(g =>
             g.slides?.forEach(s => slides.push({
               groupName: g.name || "",
-              text: s.text || ""
+              text: s.text || "",
+              notes: s.notes || ""   // NEW
             }))
           );
         }
@@ -536,6 +570,7 @@
         const textScale = getTextScale();
         const previewPref = getPreviewPreference(); // "text" or "image"
         const autoScroll = getAutoScroll();
+        const showNotes = getShowNotes(); // NEW
 
         let currentSlideEl = null;
 
@@ -569,6 +604,19 @@
           item.appendChild(header);
 
           const hasText = slide.text.trim() !== "";
+          const hasNotes = (slide.notes || "").trim() !== "";
+
+          // helper to append notes (under text only)
+          const maybeAppendNotes = () => {
+            if (!showNotes) return;
+            if (!hasNotes) return;
+
+            const notesEl = document.createElement("div");
+            notesEl.className = "slide-notes";
+            // keep line breaks
+            notesEl.innerHTML = slide.notes.replace(/\n/g, "<br>");
+            item.appendChild(notesEl);
+          };
 
           if (previewPref === "text") {
             if (hasText) {
@@ -577,6 +625,9 @@
               t.innerHTML = slide.text.replace(/\n/g, "<br>");
               applyTextScale(t, textScale);
               item.appendChild(t);
+
+              // NEW: notes under text (if enabled)
+              maybeAppendNotes();
             } else if (uuid) {
               loadThumbnail(uuid, i).then(url => {
                 if (url) {
@@ -589,6 +640,8 @@
             }
           } else {
             let fallbackTextEl = null;
+            let notesElForFallback = null;
+
             if (hasText) {
               const t = document.createElement("div");
               t.className = "slide-text";
@@ -596,13 +649,27 @@
               applyTextScale(t, textScale);
               item.appendChild(t);
               fallbackTextEl = t;
+
+              // Notes are only shown under text, so in image-pref mode:
+              // show them now (under text), but remove them if image loads.
+              if (showNotes && hasNotes) {
+                const notesEl = document.createElement("div");
+                notesEl.className = "slide-notes";
+                notesEl.innerHTML = slide.notes.replace(/\n/g, "<br>");
+                item.appendChild(notesEl);
+                notesElForFallback = notesEl;
+              }
             }
 
             if (uuid) {
               loadThumbnail(uuid, i).then(url => {
                 if (url) {
+                  // remove fallback text + notes if we are showing image
                   if (fallbackTextEl && fallbackTextEl.parentNode) {
                     fallbackTextEl.parentNode.removeChild(fallbackTextEl);
+                  }
+                  if (notesElForFallback && notesElForFallback.parentNode) {
+                    notesElForFallback.parentNode.removeChild(notesElForFallback);
                   }
                   const img = document.createElement("img");
                   img.src = url;
@@ -659,6 +726,9 @@
         const pref = getPreviewPreference();
         updatePreviewPrefSegmentUI(pref);
 
+        // NEW: show notes toggle sync (default off if unset)
+        document.getElementById("showNotesToggle").checked = getShowNotes();
+
         const themeMode = localStorage.getItem(THEME_KEY) || "system";
         updateThemeSegmentUI(themeMode);
       }
@@ -692,6 +762,12 @@
           updatePreviewPrefSegmentUI(pref);
           fetchStatus();
         });
+      });
+
+      // NEW: show notes toggle handler
+      document.getElementById("showNotesToggle").addEventListener("change", e => {
+        setShowNotes(e.target.checked);
+        fetchStatus();
       });
 
       const textSlider = document.getElementById("textSizeSlider");
