@@ -10,7 +10,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700;800&display=swap" rel="stylesheet">
 
-  <!-- Norwester -->
   <style>
     @font-face {
       font-family: 'Norwester';
@@ -22,23 +21,17 @@
     }
 
     :root{
-      /* ===== SCALE CONTROL ===== */
-      --scale: 1.75;
+      /* Base design size (16:9) */
+      --base-w: 1920;
+      --base-h: 1080;
 
+      /* Computed by JS */
+      --fit-scale: 1;
+
+      /* Visuals */
       --bg: transparent;
-
-      /* Default colors (no tint) */
       --fg: #fff;
-      --top-opacity: 0.90;
       --panel: rgba(255,255,255,0.15);
-
-      --radius: 16px;
-      --pad: 20px;
-
-      --time-w: clamp(320px, 50vw, 560px);
-      --sec-w:  clamp(84px, 12vw, 130px);
-      --time-h: clamp(110px, 18vw, 190px);
-      --gap: 16px;
     }
 
     * { box-sizing: border-box; }
@@ -47,30 +40,59 @@
     body{
       margin: 0;
       background: var(--bg);
-      color: var(--fg);
-      display: grid;
-      place-items: center;
       overflow: hidden;
     }
 
+    /* Viewport stage */
+    .stage{
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+
+    /* 16:9 bounding box that fits inside ANY viewport */
+    .bbox{
+      position: relative;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      /* Optional: uncomment to debug bounding box
+      outline: 1px dashed rgba(255,255,255,0.15);
+      */
+    }
+
+    /* Designed at 1920x1080, then scaled uniformly to fit bbox */
+    .design{
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: calc(var(--base-w) * 1px);
+      height: calc(var(--base-h) * 1px);
+      transform: translate(-50%, -50%) scale(var(--fit-scale));
+      transform-origin: center;
+      display: grid;
+      place-items: center;
+      color: var(--fg);
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1, "lnum" 1;
+    }
+
+    /* Content layout (all in base px so scaling stays perfect) */
     .wrap{
       display: grid;
-      gap: 18px;
+      gap: 32px;
       justify-items: center;
       text-align: center;
-
-      transform: scale(var(--scale));
-      transform-origin: center;
     }
 
     .topline{
       font-family: "Antonio", system-ui, sans-serif;
       font-weight: 700;
-      font-size: clamp(24px, 3.6vw, 44px);
+      font-size: 56px;
       letter-spacing: 0.10em;
       text-transform: uppercase;
-      /* default: white with opacity; if tint is provided we'll set it via JS */
-      color: rgba(255,255,255,var(--top-opacity));
+      color: var(--fg);
+      opacity: 0.90;
       line-height: 1.1;
       white-space: nowrap;
     }
@@ -78,55 +100,51 @@
     .timeRow{
       display: grid;
       grid-auto-flow: column;
-      gap: var(--gap);
+      gap: 32px;
       align-items: center;
       justify-content: center;
     }
 
     .panel{
-      height: var(--time-h);
-      border-radius: var(--radius);
+      height: 260px;
+      border-radius: 24px;
       background: var(--panel);
       display: grid;
       place-items: center;
-      padding: var(--pad);
+      padding: 36px;
     }
 
     .mainTime{
-      width: var(--time-w);
+      width: 860px;
       font-family: "Norwester", "Antonio", system-ui, sans-serif;
-      font-size: clamp(64px, 10vw, 120px);
+      font-size: 180px;
       letter-spacing: 0.04em;
       line-height: 1;
-      color: var(--fg);
-      font-variant-numeric: tabular-nums;
-      font-feature-settings: "tnum" 1, "lnum" 1;
       white-space: nowrap;
       position: relative;
+      color: var(--fg);
     }
 
     .seconds{
-      width: var(--sec-w);
+      width: 220px;
       font-family: "Norwester", "Antonio", system-ui, sans-serif;
-      font-size: clamp(40px, 6vw, 72px);
+      font-size: 120px;
       line-height: 1;
-      color: var(--fg);
-      font-variant-numeric: tabular-nums;
-      font-feature-settings: "tnum" 1, "lnum" 1;
       white-space: nowrap;
+      color: var(--fg);
     }
 
     .ampmBadge{
       position: absolute;
-      top: 12px;
-      right: 14px;
+      top: 18px;
+      right: 22px;
       font-family: "Antonio", system-ui, sans-serif;
       font-weight: 800;
-      font-size: clamp(16px, 2.2vw, 22px);
+      font-size: 34px;
       letter-spacing: 0.20em;
       text-transform: uppercase;
-      /* default: near-white; if tint provided we set via JS */
-      color: rgba(255,255,255,0.85);
+      color: var(--fg);
+      opacity: 0.85;
       line-height: 1;
       pointer-events: none;
     }
@@ -134,28 +152,61 @@
 </head>
 
 <body>
-  <div class="wrap">
-    <div id="topline" class="topline">—</div>
+  <div class="stage">
+    <div class="bbox" id="bbox">
+      <div class="design" id="design">
+        <div class="wrap">
+          <div id="topline" class="topline">—</div>
 
-    <div class="timeRow">
-      <div class="panel mainTime">
-        <span id="hm">--:--</span>
-        <span id="ampm" class="ampmBadge">—</span>
+          <div class="timeRow">
+            <div class="panel mainTime">
+              <span id="hm">--:--</span>
+              <span id="ampm" class="ampmBadge">—</span>
+            </div>
+            <div class="panel seconds" id="ss">--</div>
+          </div>
+        </div>
       </div>
-      <div class="panel seconds" id="ss">--</div>
     </div>
   </div>
 
   <script>
-    // ------------------------------------
+    // ---------------------------------------------------------
+    // Fit-to-viewport scaling:
+    // If viewport isn't 16:9, we compute a 16:9 bounding box
+    // that fits, then scale the entire 1920x1080 design to it.
+    // This keeps text + spacing proportional at ANY window size
+    // (including tiny sizes like 302x170).
+    // ---------------------------------------------------------
+    function updateFitScale() {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      // 16:9 bounding box that fits inside viewport
+      const bboxW = Math.min(vw, vh * 16 / 9);
+      const bboxH = Math.min(vh, vw * 9 / 16);
+
+      // Base design size
+      const baseW = 1920;
+      const baseH = 1080;
+
+      // Uniform scale to fit inside bbox
+      const scale = Math.min(bboxW / baseW, bboxH / baseH);
+
+      document.documentElement.style.setProperty("--fit-scale", String(scale));
+    }
+
+    window.addEventListener("resize", updateFitScale);
+    updateFitScale();
+
+    // ---------------------------------------------------------
     // Optional URL param:
     //   ?tint=2596be  (hex, with/without #)
-    //
-    // Behavior you requested:
-    // - Text becomes EXACTLY the tint color
+    // Requested behavior:
+    // - Text becomes EXACT tint color
     // - Panels become tinted with that color (transparent)
     // - If tint missing/invalid: keep original white styling
-    // ------------------------------------
+    // ---------------------------------------------------------
     const params = new URLSearchParams(window.location.search);
 
     function normalizeHex(hex) {
@@ -179,26 +230,19 @@
       const root = document.documentElement;
       const { r, g, b } = hexToRgb(hex6);
 
-      // 1) Text = exact tint
+      // Text = exact tint
       root.style.setProperty("--fg", `#${hex6}`);
 
-      // 2) Panels = tinted, transparent
-      //    (match your existing "0.15" feel but with the tint color)
+      // Panels = tinted @ same alpha feel
       root.style.setProperty("--panel", `rgba(${r}, ${g}, ${b}, 0.15)`);
-
-      // 3) Top line and AM/PM: same tint but with opacity hierarchy
-      const toplineEl = document.getElementById("topline");
-      const ampmEl = document.getElementById("ampm");
-      if (toplineEl) toplineEl.style.color = `rgba(${r}, ${g}, ${b}, 0.90)`;
-      if (ampmEl) ampmEl.style.color = `rgba(${r}, ${g}, ${b}, 0.85)`;
     }
 
     const tintParam = normalizeHex(params.get("tint"));
     if (tintParam) applyTint(tintParam);
 
-    // -----------------------------
+    // ---------------------------------------------------------
     // Clock logic (unchanged)
-    // -----------------------------
+    // ---------------------------------------------------------
     const toplineEl = document.getElementById("topline");
     const hmEl      = document.getElementById("hm");
     const ssEl      = document.getElementById("ss");
