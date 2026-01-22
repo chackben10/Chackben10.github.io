@@ -115,6 +115,132 @@
       margin-bottom: 12px;
     }
 
+    /* Preset buttons */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .preset-btn {
+      width: 100%;
+      text-align: left;
+      border-radius: 14px;
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      padding: 14px 14px;
+      cursor: pointer;
+      transition: transform 0.07s ease, filter 0.07s ease, background 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      position: relative;
+    }
+    .preset-btn:hover { background: var(--btn-hover); }
+    .preset-btn:active { transform: scale(0.99); filter: brightness(0.98); }
+    .preset-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .preset-title {
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+      margin-bottom: 6px;
+    }
+
+    .preset-sub {
+      color: var(--status-grey);
+      font-size: 0.95rem;
+      line-height: 1.25;
+    }
+
+    .selector-row {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .select-wrap { position: relative; width: 100%; }
+    .select-wrap::after {
+      content: "▾";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--card-text);
+      opacity: 0.8;
+      pointer-events: none;
+      font-weight: 900;
+    }
+
+    .select {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--card-text);
+      padding: 12px 40px 12px 12px;
+      font-size: 16px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      font-weight: 800;
+    }
+
+    /* Prevent button press when interacting with select */
+    .select, .select-wrap, option { cursor: pointer; }
+    .select { pointer-events: auto; }
+
+    /* Settings modal */
+    .settings-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 18px;
+    }
+
+    .settings-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--modal-bg);
+      color: var(--settings-text);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 18px 40px var(--modal-shadow);
+      border: 1px solid var(--border-color);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .settings-title {
+      font-size: 1.1rem;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+
+    .settings-section {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 12px;
+      background: transparent;
+    }
+
+    .settings-label {
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+
+    .settings-muted {
+      color: var(--status-grey);
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
     .pill-row {
       display: flex;
       gap: 8px;
@@ -145,99 +271,8 @@
 
     .status-text {
       font-variant-numeric: tabular-nums;
-      font-weight: 800;
-      color: var(--card-text);
-    }
-
-    .note {
-      margin-top: 10px;
-      border-radius: 14px;
-      border: 1px solid var(--border-color);
-      padding: 12px;
-      color: var(--status-grey);
-      font-size: 0.92rem;
-      line-height: 1.35;
-    }
-
-    .note b { color: var(--card-text); }
-
-    /* Preset buttons */
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    .preset-btn {
-      width: 100%;
-      text-align: left;
-      border-radius: 14px;
-      border: 1px solid var(--btn-border);
-      background: var(--btn-bg);
-      color: var(--btn-text);
-      padding: 14px 14px;
-      cursor: pointer;
-      transition: transform 0.07s ease, filter 0.07s ease, background 0.15s ease;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-    }
-    .preset-btn:hover { background: var(--btn-hover); }
-    .preset-btn:active { transform: scale(0.99); filter: brightness(0.98); }
-    .preset-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
-    .preset-title {
-      font-size: 1.15rem;
       font-weight: 900;
-      letter-spacing: 0.2px;
-      margin-bottom: 6px;
-    }
-
-    .preset-sub {
-      color: var(--status-grey);
-      font-size: 0.95rem;
-      line-height: 1.25;
-    }
-
-    .below {
-      margin-top: 10px;
-      border-radius: 14px;
-      border: 1px solid var(--border-color);
-      background: transparent;
-      padding: 12px;
-    }
-
-    .below-title {
-      font-weight: 900;
-      margin-bottom: 6px;
-      color: var(--card-text);
-    }
-
-    .select-wrap { position: relative; width: 100%; margin-top: 8px; }
-    .select-wrap::after {
-      content: "▾";
-      position: absolute;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--card-text);
-      opacity: 0.8;
-      pointer-events: none;
-      font-weight: 900;
-    }
-
-    .select {
-      width: 100%;
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      background: transparent;
-      color: var(--card-text);
-      padding: 12px 40px 12px 12px;
-      font-size: 16px;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-      font-weight: 800;
+      color: var(--settings-text);
     }
 
     .mini-row {
@@ -251,53 +286,15 @@
       border: 1px solid var(--border-color);
       border-radius: 999px;
       background: transparent;
-      color: var(--card-text);
-      font-weight: 800;
+      color: var(--settings-text);
+      font-weight: 900;
       font-size: 0.92rem;
       padding: 10px 12px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    .mini-btn:hover { background: var(--btn-hover); }
+    .mini-btn:hover { background: rgba(128,128,128,0.12); }
     .mini-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
-    /* Settings modal */
-    .settings-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.65);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 999;
-      padding: 18px;
-    }
-
-    .settings-card {
-      width: 100%;
-      max-width: 380px;
-      background: var(--modal-bg);
-      color: var(--settings-text);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 18px 40px var(--modal-shadow);
-      border: 1px solid var(--border-color);
-      transition: background 0.2s ease, color 0.2s ease;
-    }
-
-    .settings-title {
-      font-size: 1.1rem;
-      font-weight: 800;
-      margin-bottom: 10px;
-    }
-
-    .settings-row-column {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      margin-top: 6px;
-      gap: 6px;
-    }
 
     .segment {
       display: flex;
@@ -305,7 +302,7 @@
       border: 1px solid var(--border-color);
       border-radius: 10px;
       overflow: hidden;
-      margin-top: 4px;
+      margin-top: 8px;
     }
 
     .segment button {
@@ -318,7 +315,7 @@
       font-size: 0.9rem;
       transition: background 0.15s;
       -webkit-tap-highlight-color: transparent;
-      font-weight: 800;
+      font-weight: 900;
     }
 
     .segment button:hover { background: rgba(128,128,128,0.12); }
@@ -339,13 +336,12 @@
       margin-top: 14px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      font-weight: 800;
+      font-weight: 900;
     }
     .settings-close-btn:hover { background: rgba(128,128,128,0.12); }
 
     @media (min-width: 700px) {
       .grid { grid-template-columns: 1fr 1fr; }
-      .service-span { grid-column: 1 / -1; }
       .show-span { grid-column: 1 / -1; }
     }
   </style>
@@ -364,21 +360,6 @@
       You can still control ProPresenter and OBS manually on their own screens anytime.
     </div>
 
-    <div class="pill-row" aria-live="polite">
-      <span class="pill" title="Cloudflare Tunnel backend status">
-        <span id="backendDot" class="status-dot"></span>
-        <span class="status-text" id="backendStatus">Backend: Checking…</span>
-      </span>
-      <span class="pill" title="Most recent action run from this page">
-        <span class="status-text" id="lastAction">Last action: —</span>
-      </span>
-    </div>
-
-    <div class="note" id="apiNote">
-      API Base: <b id="apiBaseText">—</b><br/>
-      If this is wrong, the page will not work from phones/iPads.
-    </div>
-
     <div class="grid">
       <button class="preset-btn" id="btnStreamBeginning" type="button">
         <div class="preset-title">Stream Beginning</div>
@@ -394,30 +375,19 @@
         </div>
       </button>
 
-      <div class="service-span">
-        <button class="preset-btn" id="btnServiceLogo" type="button" style="width:100%;">
-          <div class="preset-title">Service Logo</div>
-          <div class="preset-sub" id="serviceLogoDesc">
-            Sets ProPresenter Announcement to <b>Basic Service Logo</b>, and shows the <b>Audience Camera</b> on OBS.
-          </div>
-        </button>
+      <!-- Service Logo button includes its own selector -->
+      <button class="preset-btn" id="btnServiceLogo" type="button">
+        <div class="preset-title">Service Logo</div>
+        <div class="preset-sub" id="serviceLogoDesc">
+          Sets ProPresenter Announcement to <b>—</b>, and shows the <b>Audience Camera</b> on OBS.
+        </div>
 
-        <div class="below">
-          <div class="below-title">Default Service Logo</div>
-          <div class="preset-sub">
-            This selection is used for <b>Service Logo</b> and <b>Testimonies</b>.
-          </div>
-
-          <div class="select-wrap">
-            <select id="serviceLogoSelect" class="select"></select>
-          </div>
-
-          <div class="mini-row">
-            <button class="mini-btn" id="refreshLogosBtn" type="button">Refresh List</button>
-            <button class="mini-btn" id="testBackendBtn" type="button">Test Backend</button>
+        <div class="selector-row" aria-label="Service Logo selector">
+          <div class="select-wrap" style="flex: 1;">
+            <select id="serviceLogoSelect" class="select" title="Default Service Logo"></select>
           </div>
         </div>
-      </div>
+      </button>
 
       <button class="preset-btn show-span" id="btnShowSlides" type="button">
         <div class="preset-title">Show Slides</div>
@@ -426,10 +396,17 @@
         </div>
       </button>
 
+      <!-- Testimonies button includes its own selector -->
       <button class="preset-btn" id="btnTestimonies" type="button">
         <div class="preset-title">Testimonies</div>
         <div class="preset-sub" id="testimoniesDesc">
-          Sets ProPresenter Announcement to <b>Basic Service Logo</b> and sets OBS scene to <b>Testimonies</b>.
+          Sets ProPresenter Announcement to <b>—</b> and sets OBS scene to <b>Testimonies</b>.
+        </div>
+
+        <div class="selector-row" aria-label="Testimonies selector">
+          <div class="select-wrap" style="flex: 1;">
+            <select id="testimoniesLogoSelect" class="select" title="Testimonies Service Logo"></select>
+          </div>
         </div>
       </button>
 
@@ -442,14 +419,36 @@
     </div>
   </div>
 
-  <!-- Settings modal (Theme only) -->
+  <!-- Settings modal -->
   <div id="settingsOverlay" class="settings-overlay">
     <div class="settings-card">
       <div class="settings-title">Settings</div>
 
-      <div class="settings-row-column">
-        <label style="font-weight:900;">Display Theme</label>
-        <div class="segment" id="themeSegment" style="margin-top: 0;">
+      <div class="settings-section">
+        <div class="settings-label">Backend Status</div>
+        <div class="pill-row" aria-live="polite">
+          <span class="pill" title="Cloudflare Tunnel backend status">
+            <span id="backendDot" class="status-dot"></span>
+            <span class="status-text" id="backendStatus">Backend: Checking…</span>
+          </span>
+          <span class="pill" title="Most recent action run from this page">
+            <span class="status-text" id="lastAction">Last action: —</span>
+          </span>
+        </div>
+
+        <div class="mini-row">
+          <button class="mini-btn" id="refreshLogosBtn" type="button">Refresh List</button>
+          <button class="mini-btn" id="testBackendBtn" type="button">Test Backend</button>
+        </div>
+
+        <div class="settings-muted" style="margin-top: 10px;">
+          Backend should be: <b>https://control.icas-clicker.work</b>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Display Theme</div>
+        <div class="segment" id="themeSegment">
           <button data-mode="light">Light</button>
           <button data-mode="dark">Dark</button>
           <button data-mode="system">System</button>
@@ -463,24 +462,21 @@
   <script>
     (function () {
       // ====== CONFIG ======
-      // This page is hosted at icas-clicker.work (GitHub Pages),
-      // BUT the backend is the Cloudflare Tunnel host:
-      //   https://control.icas-clicker.work
-      const API_BASE_KEY = "icas-media-control-api-base";
       const DEFAULT_API_BASE = "https://control.icas-clicker.work";
 
       const THEME_KEY = "icas-theme-mode";
+
+      // Persisted selections
       const SERVICE_LOGO_UUID_KEY = "icas-service-logo-uuid";
+      const TESTIMONIES_LOGO_UUID_KEY = "icas-testimonies-logo-uuid";
 
       function normalizeBase(u) {
         u = String(u || "").trim();
-        if (!u) return DEFAULT_API_BASE;
-        return u.replace(/\/+$/, "");
+        return (u || DEFAULT_API_BASE).replace(/\/+$/, "");
       }
 
       function getApiBase() {
-        const v = normalizeBase(localStorage.getItem(API_BASE_KEY));
-        return v || DEFAULT_API_BASE;
+        return normalizeBase(DEFAULT_API_BASE);
       }
 
       function endpoints() {
@@ -519,19 +515,28 @@
         if (stored === "system") applyTheme("system");
       });
 
-      // ====== UI ======
+      // ====== UI refs ======
       const backendDot = document.getElementById("backendDot");
       const backendStatus = document.getElementById("backendStatus");
       const lastAction = document.getElementById("lastAction");
 
-      const apiBaseText = document.getElementById("apiBaseText");
-
-      const serviceLogoSelect = document.getElementById("serviceLogoSelect");
       const refreshLogosBtn = document.getElementById("refreshLogosBtn");
       const testBackendBtn = document.getElementById("testBackendBtn");
 
+      const serviceLogoSelect = document.getElementById("serviceLogoSelect");
+      const testimoniesLogoSelect = document.getElementById("testimoniesLogoSelect");
+
       const serviceLogoDesc = document.getElementById("serviceLogoDesc");
       const testimoniesDesc = document.getElementById("testimoniesDesc");
+
+      // Prevent select taps from triggering the whole button
+      function stopBtnClickWhenSelecting(selectEl) {
+        ["click","pointerdown","touchstart","mousedown"].forEach(evt => {
+          selectEl.addEventListener(evt, (e) => e.stopPropagation(), { passive: true });
+        });
+      }
+      stopBtnClickWhenSelecting(serviceLogoSelect);
+      stopBtnClickWhenSelecting(testimoniesLogoSelect);
 
       function setBackendStatus(ok, text) {
         backendDot.classList.toggle("ok", !!ok);
@@ -545,18 +550,9 @@
       function setButtonsEnabled(enabled) {
         document.querySelectorAll(".preset-btn").forEach(b => b.disabled = !enabled);
         refreshLogosBtn.disabled = !enabled;
-      }
-
-      function getServiceLogoUuid() {
-        return (localStorage.getItem(SERVICE_LOGO_UUID_KEY) || "").trim();
-      }
-      function setServiceLogoUuid(uuid) {
-        localStorage.setItem(SERVICE_LOGO_UUID_KEY, (uuid || "").trim());
-      }
-
-      function selectedServiceLogoName() {
-        const opt = serviceLogoSelect.options[serviceLogoSelect.selectedIndex];
-        return opt ? (opt.textContent || "—") : "—";
+        testBackendBtn.disabled = false; // always allow manual test attempt
+        serviceLogoSelect.disabled = !enabled;
+        testimoniesLogoSelect.disabled = !enabled;
       }
 
       function escapeHtml(s) {
@@ -565,12 +561,22 @@
         }[c]));
       }
 
+      function getStored(key) { return (localStorage.getItem(key) || "").trim(); }
+      function setStored(key, val) { localStorage.setItem(key, String(val || "").trim()); }
+
+      function selectedName(selectEl) {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        return opt ? (opt.textContent || "—") : "—";
+      }
+
       function syncDescriptions() {
-        const name = selectedServiceLogoName();
+        const sName = selectedName(serviceLogoSelect);
+        const tName = selectedName(testimoniesLogoSelect);
+
         serviceLogoDesc.innerHTML =
-          `Sets ProPresenter Announcement to <b>${escapeHtml(name)}</b>, and shows the <b>Audience Camera</b> on OBS.`;
+          `Sets ProPresenter Announcement to <b>${escapeHtml(sName)}</b>, and shows the <b>Audience Camera</b> on OBS.`;
         testimoniesDesc.innerHTML =
-          `Sets ProPresenter Announcement to <b>${escapeHtml(name)}</b> and sets OBS scene to <b>Testimonies</b>.`;
+          `Sets ProPresenter Announcement to <b>${escapeHtml(tName)}</b> and sets OBS scene to <b>Testimonies</b>.`;
       }
 
       async function testBackend() {
@@ -581,24 +587,23 @@
           setBackendStatus(true, "Backend: Connected ✔");
           setButtonsEnabled(true);
           return true;
-        } catch (e) {
+        } catch {
           setBackendStatus(false, "Backend: Offline");
           setButtonsEnabled(false);
           return false;
         }
       }
 
-      function fillServiceLogoSelect(items) {
-        const prev = getServiceLogoUuid();
-        serviceLogoSelect.innerHTML = "";
+      function fillSelect(selectEl, items, storageKey, preferBasic) {
+        const prev = getStored(storageKey);
+        selectEl.innerHTML = "";
 
         if (!Array.isArray(items) || items.length === 0) {
           const opt = document.createElement("option");
           opt.value = "";
           opt.textContent = "No service logos found";
-          serviceLogoSelect.appendChild(opt);
-          serviceLogoSelect.value = "";
-          syncDescriptions();
+          selectEl.appendChild(opt);
+          selectEl.value = "";
           return;
         }
 
@@ -606,19 +611,20 @@
           const opt = document.createElement("option");
           opt.value = String(it.uuid || "");
           opt.textContent = String(it.name || "(Unnamed)");
-          serviceLogoSelect.appendChild(opt);
+          selectEl.appendChild(opt);
         });
 
         if (prev && items.some(x => String(x.uuid) === prev)) {
-          serviceLogoSelect.value = prev;
-        } else {
+          selectEl.value = prev;
+        } else if (preferBasic) {
           const basic = items.find(x => String(x.name) === "Basic Service Logo");
-          if (basic) serviceLogoSelect.value = String(basic.uuid || "");
-          else serviceLogoSelect.value = String(items[0].uuid || "");
-          setServiceLogoUuid(serviceLogoSelect.value);
+          if (basic) selectEl.value = String(basic.uuid || "");
+          else selectEl.value = String(items[0].uuid || "");
+          setStored(storageKey, selectEl.value);
+        } else {
+          selectEl.value = String(items[0].uuid || "");
+          setStored(storageKey, selectEl.value);
         }
-
-        syncDescriptions();
       }
 
       async function refreshServiceLogos() {
@@ -628,14 +634,29 @@
           if (!res.ok) throw new Error("Bad response");
           const data = await res.json();
           const items = Array.isArray(data?.items) ? data.items : [];
-          fillServiceLogoSelect(items);
+
+          fillSelect(serviceLogoSelect, items, SERVICE_LOGO_UUID_KEY, true);
+          fillSelect(testimoniesLogoSelect, items, TESTIMONIES_LOGO_UUID_KEY, true);
+
+          // Ensure defaults saved
+          if (!getStored(SERVICE_LOGO_UUID_KEY)) setStored(SERVICE_LOGO_UUID_KEY, serviceLogoSelect.value);
+          if (!getStored(TESTIMONIES_LOGO_UUID_KEY)) setStored(TESTIMONIES_LOGO_UUID_KEY, testimoniesLogoSelect.value);
+
+          syncDescriptions();
         } catch {
-          fillServiceLogoSelect([]);
+          fillSelect(serviceLogoSelect, [], SERVICE_LOGO_UUID_KEY, true);
+          fillSelect(testimoniesLogoSelect, [], TESTIMONIES_LOGO_UUID_KEY, true);
+          syncDescriptions();
         }
       }
 
       serviceLogoSelect.addEventListener("change", () => {
-        setServiceLogoUuid(serviceLogoSelect.value);
+        setStored(SERVICE_LOGO_UUID_KEY, serviceLogoSelect.value);
+        syncDescriptions();
+      });
+
+      testimoniesLogoSelect.addEventListener("change", () => {
+        setStored(TESTIMONIES_LOGO_UUID_KEY, testimoniesLogoSelect.value);
         syncDescriptions();
       });
 
@@ -646,10 +667,16 @@
         const { preset } = endpoints();
         const payload = { preset: presetName };
 
-        if (presetName === "service_logo" || presetName === "testimonies") {
-          const uuid = getServiceLogoUuid();
+        if (presetName === "service_logo") {
+          const uuid = getStored(SERVICE_LOGO_UUID_KEY) || serviceLogoSelect.value;
           if (!uuid) { setLastAction("Failed (no Service Logo selected)"); return; }
           payload.service_logo_uuid = uuid;
+        }
+
+        if (presetName === "testimonies") {
+          const uuid = getStored(TESTIMONIES_LOGO_UUID_KEY) || testimoniesLogoSelect.value;
+          if (!uuid) { setLastAction("Failed (no Testimonies logo selected)"); return; }
+          payload.service_logo_uuid = uuid; // backend expects service_logo_uuid
         }
 
         setLastAction(`Running: ${presetName}`);
@@ -667,7 +694,7 @@
         }
       }
 
-      // Wire buttons
+      // Wire buttons (select inside won't trigger because we stopPropagation)
       document.getElementById("btnStreamBeginning").onclick = () => runPreset("stream_beginning");
       document.getElementById("btnCamera").onclick = () => runPreset("camera");
       document.getElementById("btnServiceLogo").onclick = () => runPreset("service_logo");
@@ -698,6 +725,7 @@
       });
 
       refreshLogosBtn.onclick = refreshServiceLogos;
+
       testBackendBtn.onclick = async () => {
         const ok = await testBackend();
         if (ok) await refreshServiceLogos();
@@ -707,18 +735,20 @@
         loadTheme();
         updateThemeSegmentUI(localStorage.getItem(THEME_KEY) || "system");
 
-        // Always show what base we are calling
-        apiBaseText.textContent = getApiBase();
-
         setButtonsEnabled(false);
         setBackendStatus(false, "Backend: Checking…");
         setLastAction("—");
 
+        // Startup: attempt backend + logo list
         const ok = await testBackend();
         if (ok) await refreshServiceLogos();
-        else fillServiceLogoSelect([]);
+        else {
+          fillSelect(serviceLogoSelect, [], SERVICE_LOGO_UUID_KEY, true);
+          fillSelect(testimoniesLogoSelect, [], TESTIMONIES_LOGO_UUID_KEY, true);
+          syncDescriptions();
+        }
 
-        // Light polling (optional): every 10s, not 1.5s
+        // Light polling: every 10s
         setInterval(testBackend, 10000);
       }
 
