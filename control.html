@@ -27,9 +27,9 @@
       --danger: #ff5252;
       --ok: #00c853;
 
-      /* Preset scaling (ONLY affects the preset buttons + selectors + spacing between buttons) */
-      --preset-scale: 1;         /* 0.40 .. 2.00 */
-      --preset-round: 14px;      /* computed in JS (bigger when smaller scale) */
+      /* Button scaling (applies ONLY inside preset buttons) */
+      --btn-scale: 1; /* 1 == 100% */
+      --grid-gap-base: 10px; /* changed from 12px; scales with --btn-scale */
     }
 
     body.dark {
@@ -116,21 +116,21 @@
       color: var(--status-grey);
       font-size: 0.98rem;
       line-height: 1.35;
-      margin-bottom: 12px; /* DO NOT scale: user asked not to affect spacing above presets */
+      margin-bottom: 12px;
     }
 
-    /* Preset buttons grid */
+    /* Preset buttons */
     .grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: calc(12px * var(--preset-scale)); /* scales spacing BETWEEN buttons */
-      margin-top: 12px; /* DO NOT scale: keeps consistent spacing from title/desc */
+      gap: calc(var(--grid-gap-base) * var(--btn-scale)); /* scaled gap between buttons */
+      margin-top: 12px; /* keep spacing between title/desc and first button unchanged */
     }
 
+    /* Everything inside preset buttons scales */
     .preset-btn {
       width: 100%;
       text-align: left;
-      border-radius: var(--preset-round);
       border: 1px solid var(--btn-border);
       background: var(--btn-bg);
       color: var(--btn-text);
@@ -140,31 +140,32 @@
       touch-action: manipulation;
       position: relative;
 
-      /* padding scales with slider */
-      padding: calc(14px * var(--preset-scale)) calc(14px * var(--preset-scale));
+      /* scale the whole "feel" of the button */
+      padding: calc(14px * var(--btn-scale)) calc(14px * var(--btn-scale));
+      border-radius: clamp(8px, calc(12px * var(--btn-scale)), 16px); /* slightly less round overall */
     }
     .preset-btn:hover { background: var(--btn-hover); }
     .preset-btn:active { transform: scale(0.99); filter: brightness(0.98); }
     .preset-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-    /* Only text INSIDE buttons scales */
     .preset-title {
-      font-size: calc(1.15rem * var(--preset-scale));
+      font-size: calc(1.15rem * var(--btn-scale));
       font-weight: 900;
       letter-spacing: 0.2px;
-      margin-bottom: calc(6px * var(--preset-scale));
+      margin-bottom: calc(6px * var(--btn-scale));
+      line-height: 1.15;
     }
 
     .preset-sub {
       color: var(--status-grey);
-      font-size: calc(0.95rem * var(--preset-scale));
+      font-size: calc(0.95rem * var(--btn-scale));
       line-height: 1.25;
     }
 
     .selector-row {
-      margin-top: calc(10px * var(--preset-scale));
+      margin-top: calc(10px * var(--btn-scale));
       display: flex;
-      gap: calc(10px * var(--preset-scale));
+      gap: calc(10px * var(--btn-scale));
       align-items: center;
     }
 
@@ -172,36 +173,33 @@
     .select-wrap::after {
       content: "▾";
       position: absolute;
-      right: calc(14px * var(--preset-scale));
+      right: calc(14px * var(--btn-scale));
       top: 50%;
       transform: translateY(-50%);
       color: var(--card-text);
       opacity: 0.8;
       pointer-events: none;
       font-weight: 900;
-      font-size: calc(1rem * var(--preset-scale));
+      font-size: calc(1rem * var(--btn-scale));
     }
 
-    /* Select scales too (menu text & control height).
-       Keep >=16px to avoid iOS zoom on focus. */
     .select {
       width: 100%;
-      border-radius: calc(var(--preset-round) * 0.9);
       border: 1px solid var(--border-color);
       background: transparent;
       color: var(--card-text);
-
-      padding:
-        calc(12px * var(--preset-scale))
-        calc(40px * var(--preset-scale))
-        calc(12px * var(--preset-scale))
-        calc(12px * var(--preset-scale));
-
-      font-size: clamp(16px, calc(16px * var(--preset-scale)), 26px);
       outline: none;
       -webkit-appearance: none;
       appearance: none;
       font-weight: 800;
+
+      border-radius: clamp(8px, calc(11px * var(--btn-scale)), 14px);
+      font-size: calc(16px * var(--btn-scale));
+      padding:
+        calc(12px * var(--btn-scale))
+        calc(40px * var(--btn-scale))
+        calc(12px * var(--btn-scale))
+        calc(12px * var(--btn-scale));
     }
 
     /* Prevent button press when interacting with select */
@@ -341,6 +339,15 @@
       font-weight: 900;
     }
 
+    /* Text size slider (settings) */
+    .settings-row-column {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-top: 12px;
+      gap: 6px;
+    }
+
     .settings-close-btn {
       width: 100%;
       border: 1px solid var(--border-color);
@@ -461,15 +468,17 @@
         </div>
       </div>
 
-      <!-- Preset Text Size -->
+      <!-- NEW: Button Text Size (scales only inside buttons) -->
       <div class="settings-section">
-        <div class="settings-label">Preset Text Size</div>
-        <div class="settings-muted" style="margin-bottom: 8px;">
-          Changes text, selectors, corner-rounding, and spacing <b>inside/between preset buttons</b> only.
-        </div>
-        <div style="display:flex; width:100%; gap:8px; align-items:center;">
-          <input type="range" id="textSizeSlider" min="40" max="200" step="10" style="flex:1;">
-          <span id="textSizeValue" style="color:var(--status-grey); width:56px; text-align:right;">100%</span>
+        <div class="settings-label">Button Text Size</div>
+        <div class="settings-muted">Scales all text/components inside the preset buttons.</div>
+
+        <div class="settings-row-column" style="margin-top: 10px;">
+          <label style="font-weight: 900;">Size</label>
+          <div style="display:flex; width:100%; gap:8px; align-items:center;">
+            <input type="range" id="btnTextSizeSlider" min="40" max="200" step="10" style="flex:1;">
+            <span id="btnTextSizeValue" style="color:var(--status-grey); width:54px; text-align:right;">100%</span>
+          </div>
         </div>
       </div>
 
@@ -497,8 +506,8 @@
       const SERVICE_LOGO_UUID_KEY = "icas-service-logo-uuid";
       const TESTIMONIES_LOGO_UUID_KEY = "icas-testimonies-logo-uuid";
 
-      // Preset text size (40..200)
-      const PRESET_TEXT_SCALE_KEY = "icas-control-preset-text-scale";
+      // NEW: button scaling (40–200)
+      const BTN_SCALE_KEY = "icas-control-btn-scale";
 
       function normalizeBase(u) {
         u = String(u || "").trim();
@@ -545,31 +554,24 @@
         if (stored === "system") applyTheme("system");
       });
 
-      // ====== PRESET SIZE ======
-      function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
+      // ====== Button scale (only inside preset buttons) ======
+      function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 
-      function getPresetTextScale() {
-        const raw = parseInt(localStorage.getItem(PRESET_TEXT_SCALE_KEY), 10);
-        const v = Number.isNaN(raw) ? 100 : raw;
-        return clamp(v, 40, 200);
+      function getBtnScalePercent() {
+        const raw = parseInt(localStorage.getItem(BTN_SCALE_KEY), 10);
+        if (Number.isNaN(raw)) return 100;
+        return clamp(raw, 40, 200);
       }
 
-      function setPresetTextScale(v) {
-        const n = parseInt(v, 10);
-        if (Number.isNaN(n)) return;
-        localStorage.setItem(PRESET_TEXT_SCALE_KEY, String(clamp(n, 40, 200)));
+      function setBtnScalePercent(v) {
+        const n = clamp(parseInt(v, 10) || 100, 40, 200);
+        localStorage.setItem(BTN_SCALE_KEY, String(n));
+        applyBtnScale(n);
       }
 
-      function applyPresetSizing(scalePercent) {
-        const scale = clamp((scalePercent || 100) / 100, 0.40, 2.00);
-
-        // Corner radius: bigger when smaller scale, a bit tighter when larger.
-        // (Feels rounder when compact.)
-        let round = 14 + (1 - scale) * 10;   // scale 0.4 => +6, scale 2.0 => -10
-        round = clamp(round, 10, 22);
-
-        document.documentElement.style.setProperty("--preset-scale", String(scale));
-        document.documentElement.style.setProperty("--preset-round", `${round}px`);
+      function applyBtnScale(percent) {
+        const s = clamp((percent || 100) / 100, 0.4, 2.0);
+        document.documentElement.style.setProperty("--btn-scale", String(s));
       }
 
       // ====== UI refs ======
@@ -586,8 +588,9 @@
       const serviceLogoDesc = document.getElementById("serviceLogoDesc");
       const testimoniesDesc = document.getElementById("testimoniesDesc");
 
-      const textSizeSlider = document.getElementById("textSizeSlider");
-      const textSizeValue = document.getElementById("textSizeValue");
+      // NEW: slider UI
+      const btnTextSizeSlider = document.getElementById("btnTextSizeSlider");
+      const btnTextSizeValue = document.getElementById("btnTextSizeValue");
 
       // Prevent select taps from triggering the whole button
       function stopBtnClickWhenSelecting(selectEl) {
@@ -753,7 +756,7 @@
         }
       }
 
-      // Wire buttons
+      // Wire buttons (select inside won't trigger because we stopPropagation)
       document.getElementById("btnStreamBeginning").onclick = () => runPreset("stream_beginning");
       document.getElementById("btnCamera").onclick = () => runPreset("camera");
       document.getElementById("btnServiceLogo").onclick = () => runPreset("service_logo");
@@ -769,30 +772,10 @@
       function openModal() { settingsOverlay.style.display = "flex"; }
       function closeModal() { settingsOverlay.style.display = "none"; }
 
-      function syncTextSizeUI() {
-        const scale = getPresetTextScale();
-        textSizeSlider.value = scale;
-        textSizeValue.textContent = `${scale}%`;
-        applyPresetSizing(scale);
-      }
-
-      settingsButton.onclick = () => {
-        syncTextSizeUI();
-        openModal();
-      };
+      settingsButton.onclick = () => openModal();
       settingsCloseButton.onclick = () => closeModal();
       settingsOverlay.addEventListener("click", (e) => {
         if (e.target === settingsOverlay) closeModal();
-      });
-
-      // Slider behavior: live preview on input; persist on change
-      textSizeSlider.addEventListener("input", () => {
-        textSizeValue.textContent = `${textSizeSlider.value}%`;
-        applyPresetSizing(parseInt(textSizeSlider.value, 10));
-      });
-      textSizeSlider.addEventListener("change", () => {
-        setPresetTextScale(textSizeSlider.value);
-        syncTextSizeUI();
       });
 
       document.querySelectorAll("#themeSegment button").forEach(btn => {
@@ -804,22 +787,41 @@
       });
 
       refreshLogosBtn.onclick = refreshServiceLogos;
+
       testBackendBtn.onclick = async () => {
         const ok = await testBackend();
         if (ok) await refreshServiceLogos();
       };
 
+      // NEW: slider behavior (same pattern as picker.html)
+      function syncBtnSliderUI() {
+        const pct = getBtnScalePercent();
+        btnTextSizeSlider.value = pct;
+        btnTextSizeValue.textContent = `${pct}%`;
+        applyBtnScale(pct);
+      }
+
+      btnTextSizeSlider.addEventListener("input", () => {
+        btnTextSizeValue.textContent = `${btnTextSizeSlider.value}%`;
+        applyBtnScale(parseInt(btnTextSizeSlider.value, 10));
+      });
+
+      btnTextSizeSlider.addEventListener("change", () => {
+        setBtnScalePercent(btnTextSizeSlider.value);
+      });
+
       async function init() {
         loadTheme();
         updateThemeSegmentUI(localStorage.getItem(THEME_KEY) || "system");
 
-        // Apply preset sizing immediately (even if settings never opened)
-        syncTextSizeUI();
+        // apply stored button scale immediately
+        syncBtnSliderUI();
 
         setButtonsEnabled(false);
         setBackendStatus(false, "Backend: Checking…");
         setLastAction("—");
 
+        // Startup: attempt backend + logo list
         const ok = await testBackend();
         if (ok) await refreshServiceLogos();
         else {
@@ -828,6 +830,7 @@
           syncDescriptions();
         }
 
+        // Light polling: every 10s
         setInterval(testBackend, 10000);
       }
 
