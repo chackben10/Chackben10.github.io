@@ -208,31 +208,34 @@
       touch-action: pan-y;
     }
 
-    /* NEW: Button-inside-button (Safely Clear Slide) */
+    /* NEW: inline sub-action button (button inside a button) */
     .sub-action-btn {
       width: 100%;
       margin-top: calc(12px * var(--btn-scale));
       border: 0;
-      background: var(--danger);
-      color: #fff;
-      font-weight: 900;
       border-radius: clamp(10px, calc(14px * var(--btn-scale)), 18px);
       padding: calc(14px * var(--btn-scale)) calc(14px * var(--btn-scale));
       font-size: calc(1.05rem * var(--btn-scale));
-      text-align: center;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+      background: var(--danger);
+      color: #ffffff;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-
-      /* allow scroll gestures */
-      touch-action: pan-y;
+      touch-action: pan-y; /* still allow scroll gestures */
       user-select: none;
       -webkit-user-select: none;
     }
     .sub-action-btn:hover { filter: brightness(0.98); }
-    .sub-action-btn:active { filter: brightness(0.95); transform: scale(0.995); }
+    .sub-action-btn:active { transform: scale(0.99); }
 
-    /* NEW: Highlighted preset title in red (for standalone Safely Clear Slide button) */
-    .preset-title.danger-title { color: var(--danger); }
+    /* NEW: highlighted danger card (title in red) */
+    .preset-btn.highlight-danger {
+      border-color: color-mix(in srgb, var(--danger) 60%, var(--btn-border));
+    }
+    .preset-btn.highlight-danger .preset-title {
+      color: var(--danger);
+    }
 
     /* Settings modal */
     .settings-overlay {
@@ -426,10 +429,8 @@
           Sets ProPresenter to <b>PTZ Camera</b> and sets OBS scene to <b>PTZ Camera</b>.
         </div>
 
-        <!-- NEW: inside-button Safely Clear Slide -->
-        <button class="sub-action-btn" id="btnCameraSafeClear" type="button">
-          + Safely Clear Slide
-        </button>
+        <!-- NEW: button inside Camera -->
+        <button class="sub-action-btn" id="btnCameraSafeClear" type="button">+ Safely Clear Slide</button>
       </button>
 
       <!-- Service Logo button includes its own selector -->
@@ -445,10 +446,8 @@
           </div>
         </div>
 
-        <!-- NEW: inside-button Safely Clear Slide -->
-        <button class="sub-action-btn" id="btnServiceLogoSafeClear" type="button">
-          + Safely Clear Slide
-        </button>
+        <!-- NEW: button inside Service Logo -->
+        <button class="sub-action-btn" id="btnServiceLogoSafeClear" type="button">+ Safely Clear Slide</button>
       </button>
 
       <button class="preset-btn" id="btnShowSlides" type="button">
@@ -479,19 +478,19 @@
         </div>
       </button>
 
-      <!-- NEW: standalone Safely Clear Slide -->
-      <button class="preset-btn" id="btnSafelyClearSlide" type="button">
-        <div class="preset-title danger-title">Safely Clear Slide</div>
+      <!-- NEW: standalone Safely Clear Slide (highlighted) -->
+      <button class="preset-btn highlight-danger" id="btnSafelyClearSlide" type="button">
+        <div class="preset-title">Safely Clear Slide</div>
         <div class="preset-sub">
-          Clear the presentation in ProPresenter without affecting the camera feeds of the OBS stream.
+          Clear the presentation in ProPresenter without affecting the camera feeds of the OBS Stream.
         </div>
       </button>
 
       <!-- NEW: NSC setup -->
       <button class="preset-btn" id="btnNSCSetup" type="button">
-        <div class="preset-title">NSC Setup</div>
+        <div class="preset-title">NSC setup</div>
         <div class="preset-sub">
-          Set up ProPresenter to display the iMac screen on all in-house TVs.
+          Setup ProPresenter to display iMac screen on all in-house tvs.
         </div>
       </button>
     </div>
@@ -568,12 +567,12 @@
         return normalizeBase(DEFAULT_API_BASE);
       }
 
-      function endpoints(extraQuery) {
+      function endpoints() {
         const base = getApiBase();
         return {
           health: `${base}/health`,
           serviceLogos: `${base}/service_logos`,
-          preset: `${base}/preset${extraQuery || ""}`
+          preset: `${base}/preset`
         };
       }
 
@@ -638,7 +637,7 @@
       const serviceLogoDesc = document.getElementById("serviceLogoDesc");
       const testimoniesDesc = document.getElementById("testimoniesDesc");
 
-      // NEW refs
+      // NEW buttons
       const btnCameraSafeClear = document.getElementById("btnCameraSafeClear");
       const btnServiceLogoSafeClear = document.getElementById("btnServiceLogoSafeClear");
       const btnSafelyClearSlide = document.getElementById("btnSafelyClearSlide");
@@ -657,14 +656,14 @@
       stopBtnClickWhenSelecting(serviceLogoSelect);
       stopBtnClickWhenSelecting(testimoniesLogoSelect);
 
-      // Prevent sub-button taps from triggering the whole button
-      function stopBtnClickWhenSelectingButton(innerBtn) {
+      // NEW: prevent sub-button taps from triggering the parent button
+      function stopParentForSubButton(btnEl) {
         ["click","pointerdown","touchstart","mousedown"].forEach(evt => {
-          innerBtn.addEventListener(evt, (e) => e.stopPropagation(), { passive: false });
+          btnEl.addEventListener(evt, (e) => e.stopPropagation());
         });
       }
-      stopBtnClickWhenSelectingButton(btnCameraSafeClear);
-      stopBtnClickWhenSelectingButton(btnServiceLogoSafeClear);
+      stopParentForSubButton(btnCameraSafeClear);
+      stopParentForSubButton(btnServiceLogoSafeClear);
 
       function setBackendStatus(ok, text) {
         backendDot.classList.toggle("ok", !!ok);
@@ -682,11 +681,11 @@
         serviceLogoSelect.disabled = !enabled;
         testimoniesLogoSelect.disabled = !enabled;
 
-        // NEW: inner buttons
+        // keep sub-buttons in sync
         btnCameraSafeClear.disabled = !enabled;
         btnServiceLogoSafeClear.disabled = !enabled;
 
-        // NEW: bottom stubs should still require backend to be reachable
+        // standalone new buttons
         btnSafelyClearSlide.disabled = !enabled;
         btnNSCSetup.disabled = !enabled;
       }
@@ -838,11 +837,11 @@
         }, true);
       }
 
-      async function runPreset(presetName, extraQuery) {
+      async function runPreset(presetName) {
         const ok = await testBackend();
         if (!ok) { setLastAction("Failed (backend offline)"); return; }
 
-        const { preset } = endpoints(extraQuery || "");
+        const { preset } = endpoints();
         const payload = { preset: presetName };
 
         if (presetName === "service_logo") {
@@ -854,7 +853,7 @@
         if (presetName === "testimonies") {
           const uuid = getStored(TESTIMONIES_LOGO_UUID_KEY) || testimoniesLogoSelect.value;
           if (!uuid) { setLastAction("Failed (no Testimonies logo selected)"); return; }
-          payload.service_logo_uuid = uuid;
+          payload.service_logo_uuid = uuid; // backend expects service_logo_uuid
         }
 
         setLastAction(`Running: ${presetName}`);
@@ -872,7 +871,37 @@
         }
       }
 
-      // Wire main buttons via tap handler (prevents scroll-presses)
+      // NEW: helper to run preset with ?safeclear=true query param
+      async function runPresetSafeClear(presetName) {
+        const ok = await testBackend();
+        if (!ok) { setLastAction("Failed (backend offline)"); return; }
+
+        const { preset } = endpoints();
+        const url = `${preset}?safeclear=true`;
+        const payload = { preset: presetName };
+
+        if (presetName === "service_logo") {
+          const uuid = getStored(SERVICE_LOGO_UUID_KEY) || serviceLogoSelect.value;
+          if (!uuid) { setLastAction("Failed (no Service Logo selected)"); return; }
+          payload.service_logo_uuid = uuid;
+        }
+
+        setLastAction(`Running: ${presetName} (safeclear)`);
+
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error("Bad response");
+          setLastAction(`Done: ${presetName} (safeclear)`);
+        } catch {
+          setLastAction(`Failed: ${presetName} (safeclear)`);
+        }
+      }
+
+      // Wire buttons via tap handler (prevents scroll-presses)
       attachTapHandler(document.getElementById("btnStreamBeginning"), () => runPreset("stream_beginning"));
       attachTapHandler(document.getElementById("btnCamera"), () => runPreset("camera"));
       attachTapHandler(document.getElementById("btnServiceLogo"), () => runPreset("service_logo"));
@@ -880,11 +909,11 @@
       attachTapHandler(document.getElementById("btnTestimonies"), () => runPreset("testimonies"));
       attachTapHandler(document.getElementById("btnEndingStream"), () => runPreset("ending_stream"));
 
-      // NEW: inside-button safe clear (adds ?safeclear=true)
-      attachTapHandler(btnCameraSafeClear, () => runPreset("camera", "?safeclear=true"));
-      attachTapHandler(btnServiceLogoSafeClear, () => runPreset("service_logo", "?safeclear=true"));
+      // NEW: sub-buttons (inside buttons) -> call same endpoint with ?safeclear=true
+      attachTapHandler(btnCameraSafeClear, () => runPresetSafeClear("camera"));
+      attachTapHandler(btnServiceLogoSafeClear, () => runPresetSafeClear("service_logo"));
 
-      // NEW: bottom stub buttons (we'll implement init.lua later)
+      // NEW: standalone buttons (stubs we will implement later in init.lua)
       attachTapHandler(btnSafelyClearSlide, () => runPreset("safely_clear_slide"));
       attachTapHandler(btnNSCSetup, () => runPreset("nsc_setup"));
 
