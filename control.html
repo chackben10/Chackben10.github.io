@@ -27,8 +27,9 @@
       --danger: #ff5252;
       --ok: #00c853;
 
-      /* NEW: preset scaling (only affects button content) */
-      --preset-scale: 1;
+      /* Preset scaling (ONLY affects the preset buttons + selectors + spacing between buttons) */
+      --preset-scale: 1;         /* 0.40 .. 2.00 */
+      --preset-round: 14px;      /* computed in JS (bigger when smaller scale) */
     }
 
     body.dark {
@@ -115,21 +116,21 @@
       color: var(--status-grey);
       font-size: 0.98rem;
       line-height: 1.35;
-      margin-bottom: 12px;
+      margin-bottom: 12px; /* DO NOT scale: user asked not to affect spacing above presets */
     }
 
-    /* Preset buttons */
+    /* Preset buttons grid */
     .grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 12px;
-      margin-top: 12px;
+      gap: calc(12px * var(--preset-scale)); /* scales spacing BETWEEN buttons */
+      margin-top: 12px; /* DO NOT scale: keeps consistent spacing from title/desc */
     }
 
     .preset-btn {
       width: 100%;
       text-align: left;
-      border-radius: 14px;
+      border-radius: var(--preset-round);
       border: 1px solid var(--btn-border);
       background: var(--btn-bg);
       color: var(--btn-text);
@@ -146,7 +147,7 @@
     .preset-btn:active { transform: scale(0.99); filter: brightness(0.98); }
     .preset-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-    /* Only the text inside buttons scales */
+    /* Only text INSIDE buttons scales */
     .preset-title {
       font-size: calc(1.15rem * var(--preset-scale));
       font-weight: 900;
@@ -163,7 +164,7 @@
     .selector-row {
       margin-top: calc(10px * var(--preset-scale));
       display: flex;
-      gap: 10px;
+      gap: calc(10px * var(--preset-scale));
       align-items: center;
     }
 
@@ -171,24 +172,32 @@
     .select-wrap::after {
       content: "▾";
       position: absolute;
-      right: 14px;
+      right: calc(14px * var(--preset-scale));
       top: 50%;
       transform: translateY(-50%);
       color: var(--card-text);
       opacity: 0.8;
       pointer-events: none;
       font-weight: 900;
+      font-size: calc(1rem * var(--preset-scale));
     }
 
-    /* Select stays readable on iOS: keep 16px minimum font-size */
+    /* Select scales too (menu text & control height).
+       Keep >=16px to avoid iOS zoom on focus. */
     .select {
       width: 100%;
-      border-radius: 12px;
+      border-radius: calc(var(--preset-round) * 0.9);
       border: 1px solid var(--border-color);
       background: transparent;
       color: var(--card-text);
-      padding: calc(12px * var(--preset-scale)) 40px calc(12px * var(--preset-scale)) calc(12px * var(--preset-scale));
-      font-size: 16px;
+
+      padding:
+        calc(12px * var(--preset-scale))
+        calc(40px * var(--preset-scale))
+        calc(12px * var(--preset-scale))
+        calc(12px * var(--preset-scale));
+
+      font-size: clamp(16px, calc(16px * var(--preset-scale)), 26px);
       outline: none;
       -webkit-appearance: none;
       appearance: none;
@@ -452,11 +461,11 @@
         </div>
       </div>
 
-      <!-- NEW: Text Size for presets ONLY -->
+      <!-- Preset Text Size -->
       <div class="settings-section">
         <div class="settings-label">Preset Text Size</div>
         <div class="settings-muted" style="margin-bottom: 8px;">
-          Changes text + padding <b>inside the preset buttons</b> only.
+          Changes text, selectors, corner-rounding, and spacing <b>inside/between preset buttons</b> only.
         </div>
         <div style="display:flex; width:100%; gap:8px; align-items:center;">
           <input type="range" id="textSizeSlider" min="40" max="200" step="10" style="flex:1;">
@@ -488,8 +497,8 @@
       const SERVICE_LOGO_UUID_KEY = "icas-service-logo-uuid";
       const TESTIMONIES_LOGO_UUID_KEY = "icas-testimonies-logo-uuid";
 
-      // NEW: preset text size
-      const PRESET_TEXT_SCALE_KEY = "icas-control-preset-text-scale"; // percent integer (40..200)
+      // Preset text size (40..200)
+      const PRESET_TEXT_SCALE_KEY = "icas-control-preset-text-scale";
 
       function normalizeBase(u) {
         u = String(u || "").trim();
@@ -536,23 +545,31 @@
         if (stored === "system") applyTheme("system");
       });
 
-      // ====== PRESET TEXT SIZE (buttons only) ======
+      // ====== PRESET SIZE ======
+      function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
+
       function getPresetTextScale() {
         const raw = parseInt(localStorage.getItem(PRESET_TEXT_SCALE_KEY), 10);
         const v = Number.isNaN(raw) ? 100 : raw;
-        return Math.min(200, Math.max(40, v));
+        return clamp(v, 40, 200);
       }
 
       function setPresetTextScale(v) {
         const n = parseInt(v, 10);
         if (Number.isNaN(n)) return;
-        const clamped = Math.min(200, Math.max(40, n));
-        localStorage.setItem(PRESET_TEXT_SCALE_KEY, String(clamped));
+        localStorage.setItem(PRESET_TEXT_SCALE_KEY, String(clamp(n, 40, 200)));
       }
 
-      function applyPresetTextScale(scalePercent) {
-        const scale = (scalePercent || 100) / 100;
+      function applyPresetSizing(scalePercent) {
+        const scale = clamp((scalePercent || 100) / 100, 0.40, 2.00);
+
+        // Corner radius: bigger when smaller scale, a bit tighter when larger.
+        // (Feels rounder when compact.)
+        let round = 14 + (1 - scale) * 10;   // scale 0.4 => +6, scale 2.0 => -10
+        round = clamp(round, 10, 22);
+
         document.documentElement.style.setProperty("--preset-scale", String(scale));
+        document.documentElement.style.setProperty("--preset-round", `${round}px`);
       }
 
       // ====== UI refs ======
@@ -569,7 +586,6 @@
       const serviceLogoDesc = document.getElementById("serviceLogoDesc");
       const testimoniesDesc = document.getElementById("testimoniesDesc");
 
-      // NEW: slider UI
       const textSizeSlider = document.getElementById("textSizeSlider");
       const textSizeValue = document.getElementById("textSizeValue");
 
@@ -737,7 +753,7 @@
         }
       }
 
-      // Wire buttons (select inside won't trigger because we stopPropagation)
+      // Wire buttons
       document.getElementById("btnStreamBeginning").onclick = () => runPreset("stream_beginning");
       document.getElementById("btnCamera").onclick = () => runPreset("camera");
       document.getElementById("btnServiceLogo").onclick = () => runPreset("service_logo");
@@ -757,7 +773,7 @@
         const scale = getPresetTextScale();
         textSizeSlider.value = scale;
         textSizeValue.textContent = `${scale}%`;
-        applyPresetTextScale(scale);
+        applyPresetSizing(scale);
       }
 
       settingsButton.onclick = () => {
@@ -769,10 +785,10 @@
         if (e.target === settingsOverlay) closeModal();
       });
 
-      // Slider behavior matches picker: show live value on input, apply+persist on change
+      // Slider behavior: live preview on input; persist on change
       textSizeSlider.addEventListener("input", () => {
         textSizeValue.textContent = `${textSizeSlider.value}%`;
-        applyPresetTextScale(parseInt(textSizeSlider.value, 10));
+        applyPresetSizing(parseInt(textSizeSlider.value, 10));
       });
       textSizeSlider.addEventListener("change", () => {
         setPresetTextScale(textSizeSlider.value);
@@ -788,7 +804,6 @@
       });
 
       refreshLogosBtn.onclick = refreshServiceLogos;
-
       testBackendBtn.onclick = async () => {
         const ok = await testBackend();
         if (ok) await refreshServiceLogos();
@@ -798,14 +813,13 @@
         loadTheme();
         updateThemeSegmentUI(localStorage.getItem(THEME_KEY) || "system");
 
-        // Apply preset scale immediately on page load (even if settings never opened)
+        // Apply preset sizing immediately (even if settings never opened)
         syncTextSizeUI();
 
         setButtonsEnabled(false);
         setBackendStatus(false, "Backend: Checking…");
         setLastAction("—");
 
-        // Startup: attempt backend + logo list
         const ok = await testBackend();
         if (ok) await refreshServiceLogos();
         else {
@@ -814,7 +828,6 @@
           syncDescriptions();
         }
 
-        // Light polling: every 10s
         setInterval(testBackend, 10000);
       }
 
