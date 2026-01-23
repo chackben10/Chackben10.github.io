@@ -70,6 +70,7 @@
 
       transition: background 0.25s ease, color 0.25s ease;
       -webkit-overflow-scrolling: touch;
+      touch-action: manipulation;
     }
 
     .wrapper { width: 100%; max-width: 680px; padding: 16px; }
@@ -119,37 +120,75 @@
       margin-bottom: 12px;
     }
 
-    /* Preset buttons */
+    /* Grid */
     .grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: calc(var(--grid-gap-base) * var(--btn-scale)); /* scaled gap between buttons */
-      margin-top: 12px; /* keep spacing between title/desc and first button unchanged */
+      gap: calc(var(--grid-gap-base) * var(--btn-scale)); /* scaled gap between items */
+      margin-top: 12px; /* keep spacing between title/desc and first item unchanged */
     }
 
-    .preset-btn {
+    @media (min-width: 700px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ===== Preset item as a "card" (main action + optional attached sub-action) ===== */
+    .preset-card {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preset-main,
+    .preset-addon {
       width: 100%;
       text-align: left;
       border: 1px solid var(--btn-border);
       background: var(--btn-bg);
       color: var(--btn-text);
       cursor: pointer;
-      transition: transform 0.07s ease, filter 0.07s ease, background 0.15s ease;
       -webkit-tap-highlight-color: transparent;
       position: relative;
 
-      /* scale the whole "feel" of the button */
-      padding: calc(14px * var(--btn-scale)) calc(14px * var(--btn-scale));
-      border-radius: clamp(8px, calc(12px * var(--btn-scale)), 16px);
-
-      /* CRITICAL: allow vertical scrolling gestures on buttons without "sticky press" */
+      /* allow vertical scrolling gestures without accidental presses */
       touch-action: pan-y;
       user-select: none;
       -webkit-user-select: none;
+
+      transition: transform 0.07s ease, filter 0.07s ease, background 0.15s ease;
     }
-    .preset-btn:hover { background: var(--btn-hover); }
-    .preset-btn:active { transform: scale(0.99); filter: brightness(0.98); }
-    .preset-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .preset-main {
+      /* scale the whole "feel" of the button */
+      padding: calc(14px * var(--btn-scale)) calc(14px * var(--btn-scale));
+      border-radius: clamp(8px, calc(12px * var(--btn-scale)), 16px);
+    }
+
+    /* Attached (no gap) addon button */
+    .preset-card.has-addon .preset-main {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      border-bottom-width: 0; /* visually merges borders */
+    }
+    .preset-addon {
+      padding: calc(14px * var(--btn-scale)) calc(14px * var(--btn-scale));
+      border-radius: clamp(8px, calc(12px * var(--btn-scale)), 16px);
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+      text-align: center;
+      font-size: calc(1.05rem * var(--btn-scale));
+      font-weight: 900;
+      letter-spacing: 0.2px;
+    }
+
+    .preset-main:hover,
+    .preset-addon:hover { background: var(--btn-hover); }
+
+    .preset-main:active,
+    .preset-addon:active { transform: scale(0.99); filter: brightness(0.98); }
+
+    .preset-main:disabled,
+    .preset-addon:disabled { opacity: 0.55; cursor: not-allowed; }
 
     .preset-title {
       font-size: calc(1.15rem * var(--btn-scale));
@@ -208,34 +247,23 @@
       touch-action: pan-y;
     }
 
-    /* NEW: inline sub-action button (button inside a button) */
-    .sub-action-btn {
-      width: 100%;
-      margin-top: calc(12px * var(--btn-scale));
-      border: 0;
-      border-radius: clamp(10px, calc(14px * var(--btn-scale)), 18px);
-      padding: calc(14px * var(--btn-scale)) calc(14px * var(--btn-scale));
-      font-size: calc(1.05rem * var(--btn-scale));
-      font-weight: 900;
-      letter-spacing: 0.2px;
+    /* Red filled button style */
+    .danger-fill {
       background: var(--danger);
       color: #ffffff;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: pan-y; /* still allow scroll gestures */
-      user-select: none;
-      -webkit-user-select: none;
+      border-color: color-mix(in srgb, var(--danger) 70%, var(--btn-border));
     }
-    .sub-action-btn:hover { filter: brightness(0.98); }
-    .sub-action-btn:active { transform: scale(0.99); }
+    .danger-fill .preset-sub { color: rgba(255,255,255,0.92); }
+    .danger-fill:hover { filter: brightness(0.98); background: var(--danger); }
+    .danger-fill:active { filter: brightness(0.96); }
 
-    /* NEW: highlighted danger card (title in red) */
-    .preset-btn.highlight-danger {
-      border-color: color-mix(in srgb, var(--danger) 60%, var(--btn-border));
+    /* Red filled addon button */
+    .preset-addon.danger-fill {
+      background: var(--danger);
+      color: #ffffff;
+      border-color: color-mix(in srgb, var(--danger) 70%, var(--btn-border));
     }
-    .preset-btn.highlight-danger .preset-title {
-      color: var(--danger);
-    }
+    .preset-addon.danger-fill:hover { filter: brightness(0.98); background: var(--danger); }
 
     /* Settings modal */
     .settings-overlay {
@@ -372,14 +400,6 @@
       font-weight: 900;
     }
 
-    .settings-row-column {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      margin-top: 12px;
-      gap: 6px;
-    }
-
     .settings-close-btn {
       width: 100%;
       border: 1px solid var(--border-color);
@@ -395,10 +415,6 @@
       touch-action: manipulation;
     }
     .settings-close-btn:hover { background: rgba(128,128,128,0.12); }
-
-    @media (min-width: 700px) {
-      .grid { grid-template-columns: 1fr 1fr; }
-    }
   </style>
 </head>
 
@@ -416,83 +432,99 @@
     </div>
 
     <div class="grid">
-      <button class="preset-btn" id="btnStreamBeginning" type="button">
-        <div class="preset-title">Stream Beginning</div>
-        <div class="preset-sub">
-          Sets ProPresenter to <b>Starting Announcements</b> and sets OBS scene to <b>Stream Start</b>.
-        </div>
-      </button>
-
-      <button class="preset-btn" id="btnCamera" type="button">
-        <div class="preset-title">Camera</div>
-        <div class="preset-sub">
-          Sets ProPresenter to <b>PTZ Camera</b> and sets OBS scene to <b>PTZ Camera</b>.
-        </div>
-
-        <!-- NEW: button inside Camera -->
-        <button class="sub-action-btn" id="btnCameraSafeClear" type="button">+ Safely Clear Slide</button>
-      </button>
-
-      <!-- Service Logo button includes its own selector -->
-      <button class="preset-btn" id="btnServiceLogo" type="button">
-        <div class="preset-title">Service Logo</div>
-        <div class="preset-sub" id="serviceLogoDesc">
-          Sets ProPresenter Announcement to <b>—</b>, and shows the <b>Audience Camera</b> on OBS.
-        </div>
-
-        <div class="selector-row" aria-label="Service Logo selector">
-          <div class="select-wrap" style="flex: 1;">
-            <select id="serviceLogoSelect" class="select" title="Default Service Logo"></select>
+      <!-- Stream Beginning -->
+      <div class="preset-card" id="cardStreamBeginning">
+        <button class="preset-main" id="btnStreamBeginning" type="button">
+          <div class="preset-title">Stream Beginning</div>
+          <div class="preset-sub">
+            Sets ProPresenter to <b>Starting Announcements</b> and sets OBS scene to <b>Stream Start</b>.
           </div>
-        </div>
+        </button>
+      </div>
 
-        <!-- NEW: button inside Service Logo -->
-        <button class="sub-action-btn" id="btnServiceLogoSafeClear" type="button">+ Safely Clear Slide</button>
-      </button>
-
-      <button class="preset-btn" id="btnShowSlides" type="button">
-        <div class="preset-title">Show Slides</div>
-        <div class="preset-sub">
-          Clears ProPresenter Announcements and sets OBS scene to <b>ProPresenter Input</b>.
-        </div>
-      </button>
-
-      <!-- Testimonies button includes its own selector -->
-      <button class="preset-btn" id="btnTestimonies" type="button">
-        <div class="preset-title">Testimonies</div>
-        <div class="preset-sub" id="testimoniesDesc">
-          Sets ProPresenter Announcement to <b>—</b> and sets OBS scene to <b>Testimonies</b>.
-        </div>
-
-        <div class="selector-row" aria-label="Testimonies selector">
-          <div class="select-wrap" style="flex: 1;">
-            <select id="testimoniesLogoSelect" class="select" title="Testimonies Service Logo"></select>
+      <!-- Camera + attached Safely Clear -->
+      <div class="preset-card has-addon" id="cardCamera">
+        <button class="preset-main" id="btnCamera" type="button">
+          <div class="preset-title">Camera</div>
+          <div class="preset-sub">
+            Sets ProPresenter to <b>PTZ Camera</b> and sets OBS scene to <b>PTZ Camera</b>.
           </div>
-        </div>
-      </button>
+        </button>
+        <button class="preset-addon danger-fill" id="btnCameraSafeClear" type="button">+ Safely Clear Slide</button>
+      </div>
 
-      <button class="preset-btn" id="btnEndingStream" type="button">
-        <div class="preset-title">Ending Stream</div>
-        <div class="preset-sub">
-          Sets ProPresenter to <b>Ending Announcements</b> and sets OBS scene to <b>Thanks Screen</b>.
-        </div>
-      </button>
+      <!-- Service Logo + selector + attached Safely Clear -->
+      <div class="preset-card has-addon" id="cardServiceLogo">
+        <button class="preset-main" id="btnServiceLogo" type="button">
+          <div class="preset-title">Service Logo</div>
+          <div class="preset-sub" id="serviceLogoDesc">
+            Sets ProPresenter Announcement to <b>—</b>, and shows the <b>Audience Camera</b> on OBS.
+          </div>
 
-      <!-- NEW: standalone Safely Clear Slide (highlighted) -->
-      <button class="preset-btn highlight-danger" id="btnSafelyClearSlide" type="button">
-        <div class="preset-title">Safely Clear Slide</div>
-        <div class="preset-sub">
-          Clear the presentation in ProPresenter without affecting the camera feeds of the OBS Stream.
-        </div>
-      </button>
+          <div class="selector-row" aria-label="Service Logo selector">
+            <div class="select-wrap" style="flex: 1;">
+              <select id="serviceLogoSelect" class="select" title="Default Service Logo"></select>
+            </div>
+          </div>
+        </button>
+        <button class="preset-addon danger-fill" id="btnServiceLogoSafeClear" type="button">+ Safely Clear Slide</button>
+      </div>
 
-      <!-- NEW: NSC setup -->
-      <button class="preset-btn" id="btnNSCSetup" type="button">
-        <div class="preset-title">NSC setup</div>
-        <div class="preset-sub">
-          Setup ProPresenter to display iMac screen on all in-house tvs.
-        </div>
-      </button>
+      <!-- Show Slides -->
+      <div class="preset-card" id="cardShowSlides">
+        <button class="preset-main" id="btnShowSlides" type="button">
+          <div class="preset-title">Show Slides</div>
+          <div class="preset-sub">
+            Clears ProPresenter Announcements and sets OBS scene to <b>ProPresenter Input</b>.
+          </div>
+        </button>
+      </div>
+
+      <!-- Testimonies -->
+      <div class="preset-card" id="cardTestimonies">
+        <button class="preset-main" id="btnTestimonies" type="button">
+          <div class="preset-title">Testimonies</div>
+          <div class="preset-sub" id="testimoniesDesc">
+            Sets ProPresenter Announcement to <b>—</b> and sets OBS scene to <b>Testimonies</b>.
+          </div>
+
+          <div class="selector-row" aria-label="Testimonies selector">
+            <div class="select-wrap" style="flex: 1;">
+              <select id="testimoniesLogoSelect" class="select" title="Testimonies Service Logo"></select>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Ending Stream -->
+      <div class="preset-card" id="cardEndingStream">
+        <button class="preset-main" id="btnEndingStream" type="button">
+          <div class="preset-title">Ending Stream</div>
+          <div class="preset-sub">
+            Sets ProPresenter to <b>Ending Announcements</b> and sets OBS scene to <b>Thanks Screen</b>.
+          </div>
+        </button>
+      </div>
+
+      <!-- Standalone Safely Clear Slide (RED background) -->
+      <div class="preset-card" id="cardSafelyClearSlide">
+        <button class="preset-main danger-fill" id="btnSafelyClearSlide" type="button">
+          <div class="preset-title">Safely Clear Slide</div>
+          <div class="preset-sub">
+            Clear the presentation in ProPresenter without affecting the camera feeds of the OBS Stream.
+          </div>
+        </button>
+      </div>
+
+      <!-- NSC setup -->
+      <div class="preset-card" id="cardNSCSetup">
+        <button class="preset-main" id="btnNSCSetup" type="button">
+          <div class="preset-title">NSC setup</div>
+          <div class="preset-sub">
+            Setup ProPresenter to display iMac screen on all in-house tvs.
+          </div>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -523,12 +555,9 @@
         </div>
       </div>
 
-      <!-- Button scale slider (no extra text) -->
+      <!-- Button scale slider (no extra text / no % label) -->
       <div class="settings-section">
-        <div style="display:flex; width:100%; gap:8px; align-items:center;">
-          <input type="range" id="btnTextSizeSlider" min="40" max="200" step="10" style="flex:1;">
-          <span id="btnTextSizeValue" style="color:var(--status-grey); width:54px; text-align:right;">100%</span>
-        </div>
+        <input type="range" id="btnTextSizeSlider" min="40" max="200" step="10" style="width:100%;">
       </div>
 
       <div class="settings-section">
@@ -637,17 +666,24 @@
       const serviceLogoDesc = document.getElementById("serviceLogoDesc");
       const testimoniesDesc = document.getElementById("testimoniesDesc");
 
-      // NEW buttons
+      // Buttons
+      const btnStreamBeginning = document.getElementById("btnStreamBeginning");
+      const btnCamera = document.getElementById("btnCamera");
+      const btnServiceLogo = document.getElementById("btnServiceLogo");
+      const btnShowSlides = document.getElementById("btnShowSlides");
+      const btnTestimonies = document.getElementById("btnTestimonies");
+      const btnEndingStream = document.getElementById("btnEndingStream");
+
       const btnCameraSafeClear = document.getElementById("btnCameraSafeClear");
       const btnServiceLogoSafeClear = document.getElementById("btnServiceLogoSafeClear");
+
       const btnSafelyClearSlide = document.getElementById("btnSafelyClearSlide");
       const btnNSCSetup = document.getElementById("btnNSCSetup");
 
-      // Slider UI
+      // Slider UI (no label)
       const btnTextSizeSlider = document.getElementById("btnTextSizeSlider");
-      const btnTextSizeValue = document.getElementById("btnTextSizeValue");
 
-      // Prevent select taps from triggering the whole button
+      // Prevent select taps from triggering the main button (and allow scrolling)
       function stopBtnClickWhenSelecting(selectEl) {
         ["click","pointerdown","touchstart","mousedown"].forEach(evt => {
           selectEl.addEventListener(evt, (e) => e.stopPropagation(), { passive: true });
@@ -655,15 +691,6 @@
       }
       stopBtnClickWhenSelecting(serviceLogoSelect);
       stopBtnClickWhenSelecting(testimoniesLogoSelect);
-
-      // NEW: prevent sub-button taps from triggering the parent button
-      function stopParentForSubButton(btnEl) {
-        ["click","pointerdown","touchstart","mousedown"].forEach(evt => {
-          btnEl.addEventListener(evt, (e) => e.stopPropagation());
-        });
-      }
-      stopParentForSubButton(btnCameraSafeClear);
-      stopParentForSubButton(btnServiceLogoSafeClear);
 
       function setBackendStatus(ok, text) {
         backendDot.classList.toggle("ok", !!ok);
@@ -675,19 +702,17 @@
       }
 
       function setButtonsEnabled(enabled) {
-        document.querySelectorAll(".preset-btn").forEach(b => b.disabled = !enabled);
+        [
+          btnStreamBeginning, btnCamera, btnServiceLogo, btnShowSlides,
+          btnTestimonies, btnEndingStream,
+          btnCameraSafeClear, btnServiceLogoSafeClear,
+          btnSafelyClearSlide, btnNSCSetup
+        ].forEach(b => { if (b) b.disabled = !enabled; });
+
         refreshLogosBtn.disabled = !enabled;
         testBackendBtn.disabled = false; // always allow manual test attempt
         serviceLogoSelect.disabled = !enabled;
         testimoniesLogoSelect.disabled = !enabled;
-
-        // keep sub-buttons in sync
-        btnCameraSafeClear.disabled = !enabled;
-        btnServiceLogoSafeClear.disabled = !enabled;
-
-        // standalone new buttons
-        btnSafelyClearSlide.disabled = !enabled;
-        btnNSCSetup.disabled = !enabled;
       }
 
       function escapeHtml(s) {
@@ -795,21 +820,20 @@
       });
 
       // ====== Fix accidental presses during scroll (touch devices) ======
-      // Use pointer events: only fire if it was a "tap" (small movement).
+      // Fire only on "tap" (small movement). Prevent delayed click from scroll.
       function attachTapHandler(el, handler) {
-        let startX = 0, startY = 0, moved = false, activePointerId = null;
+        if (!el) return;
 
+        let startX = 0, startY = 0, moved = false, activePointerId = null;
         const MOVE_PX = 10;
 
         el.addEventListener("pointerdown", (e) => {
           if (el.disabled) return;
           if (e.isPrimary === false) return;
-
           activePointerId = e.pointerId;
           moved = false;
           startX = e.clientX;
           startY = e.clientY;
-
           try { el.setPointerCapture(e.pointerId); } catch {}
         });
 
@@ -831,6 +855,7 @@
         el.addEventListener("pointerup", finish);
         el.addEventListener("pointercancel", () => { activePointerId = null; moved = false; });
 
+        // Block native click (prevents "scroll then click" behavior)
         el.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -871,7 +896,7 @@
         }
       }
 
-      // NEW: helper to run preset with ?safeclear=true query param
+      // Helper to run preset with ?safeclear=true query param
       async function runPresetSafeClear(presetName) {
         const ok = await testBackend();
         if (!ok) { setLastAction("Failed (backend offline)"); return; }
@@ -901,19 +926,19 @@
         }
       }
 
-      // Wire buttons via tap handler (prevents scroll-presses)
-      attachTapHandler(document.getElementById("btnStreamBeginning"), () => runPreset("stream_beginning"));
-      attachTapHandler(document.getElementById("btnCamera"), () => runPreset("camera"));
-      attachTapHandler(document.getElementById("btnServiceLogo"), () => runPreset("service_logo"));
-      attachTapHandler(document.getElementById("btnShowSlides"), () => runPreset("show_slides"));
-      attachTapHandler(document.getElementById("btnTestimonies"), () => runPreset("testimonies"));
-      attachTapHandler(document.getElementById("btnEndingStream"), () => runPreset("ending_stream"));
+      // Wire buttons via tap handler
+      attachTapHandler(btnStreamBeginning, () => runPreset("stream_beginning"));
+      attachTapHandler(btnCamera, () => runPreset("camera"));
+      attachTapHandler(btnServiceLogo, () => runPreset("service_logo"));
+      attachTapHandler(btnShowSlides, () => runPreset("show_slides"));
+      attachTapHandler(btnTestimonies, () => runPreset("testimonies"));
+      attachTapHandler(btnEndingStream, () => runPreset("ending_stream"));
 
-      // NEW: sub-buttons (inside buttons) -> call same endpoint with ?safeclear=true
+      // Attached sub-actions (same endpoint + ?safeclear=true)
       attachTapHandler(btnCameraSafeClear, () => runPresetSafeClear("camera"));
       attachTapHandler(btnServiceLogoSafeClear, () => runPresetSafeClear("service_logo"));
 
-      // NEW: standalone buttons (stubs we will implement later in init.lua)
+      // Standalone buttons (stubs we will implement later in init.lua)
       attachTapHandler(btnSafelyClearSlide, () => runPreset("safely_clear_slide"));
       attachTapHandler(btnNSCSetup, () => runPreset("nsc_setup"));
 
@@ -946,16 +971,14 @@
         if (ok) await refreshServiceLogos();
       };
 
-      // Slider behavior
+      // Slider behavior (no visible % label)
       function syncBtnSliderUI() {
         const pct = getBtnScalePercent();
         btnTextSizeSlider.value = pct;
-        btnTextSizeValue.textContent = `${pct}%`;
         applyBtnScale(pct);
       }
 
       btnTextSizeSlider.addEventListener("input", () => {
-        btnTextSizeValue.textContent = `${btnTextSizeSlider.value}%`;
         applyBtnScale(parseInt(btnTextSizeSlider.value, 10));
       });
 
