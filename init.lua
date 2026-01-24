@@ -1,8 +1,8 @@
 ------------------------------------------------------------
 -- ProPresenter Remote Control via Clicker + HTTP Server
 -- + Bible look enforcement
--- + Announcement watcher -> OBS Bridge
--- + HTTP API for HTML tools
+-- + HTTP API for slides + control presets (one-shot)
+-- + OBS Bridge start/watch (no auto toggles)
 ------------------------------------------------------------
 
 proRemote = proRemote or {}
@@ -30,23 +30,24 @@ proRemote.PROPRESENTER_LOOK_CURRENT = "http://localhost:49232/v1/look/current"
 proRemote.BIBLE_LOOK_NAME           = "Bible"
 proRemote.BIBLE_MACRO_TRIGGER_URL   = "http://localhost:49232/v1/macro/69293C79-69BB-4061-86E1-76F627CB3085/trigger"
 
+-- Try to force a "real" presentation into focus if focused is announcements
+proRemote.PROPRESENTER_ACTIVE_FOCUS = "http://localhost:49232/v1/presentation/active/focus"
+proRemote.FOCUSED_RECHECK_DELAY_SEC = 0.20
+
+-- Clear announcements layer
+proRemote.PROPRESENTER_CLEAR_ANNOUNCEMENTS = "http://localhost:49232/v1/clear/layer/announcements"
+
 proRemote.PROPRESENTER_PRESENTATION_BASE = proRemote.PROPRESENTER_ACTIVE_BASE
 
--- Announcement endpoints
-proRemote.PROPRESENTER_ANNOUNCEMENT_ACTIVE = "http://localhost:49232/v1/announcement/active"
-proRemote.ANNOUNCEMENT_CAMERA_KEYWORD = "camera"
-
--- Chunked streams
+-- Chunked streams (kept; unused currently)
 proRemote.USE_CHUNKED_STREAMS = true
 proRemote.CURL_PATH = "/usr/bin/curl"
 proRemote.STREAM_RESTART_DELAY_SEC = 1.0
 
--- Fallback poll (keeps working if stream drops)
-proRemote.ANNOUNCEMENT_POLL_FALLBACK_SEC = 1.0
-
 -- HTTP server
 proRemote.HTTP_SERVER_PORT      = 1337
-proRemote.HTTP_SERVER_INTERFACE = "localhost"
+-- CHANGED: allow LAN access (Cloudflare Tunnel still works either way)
+proRemote.HTTP_SERVER_INTERFACE = "127.0.0.1"
 
 -- OBS Bridge (Node)
 proRemote.OBS_BRIDGE_ENABLED = true
@@ -57,10 +58,48 @@ proRemote.NODE_PATH          = "/opt/homebrew/bin/node"
 proRemote.OBS_BRIDGE_SCRIPT  = "/Users/icas/obs-bridge/server.mjs"
 proRemote.OBS_BRIDGE_WORKDIR = "/Users/icas/obs-bridge"
 
--- OBS names
-proRemote.OBS_SCENE_NAME          = "ProPresenter Slides"
-proRemote.OBS_SOURCE_CAMERA       = "PTZ Camera"
-proRemote.OBS_SOURCE_ANNOUNCEMENT = "Audience Camera"
+-- OBS transitions
+proRemote.OBS_DEFAULT_TRANSITION_NAME  = "Cut"
+proRemote.OBS_SPECIAL_TRANSITION_NAME  = "Old Film Logo"
+proRemote.OBS_FALLBACK_TRANSITION_NAME = "Fade"
+proRemote.OBS_FALLBACK_TRANSITION_MS   = 500
+
+-- Scenes that should use Old Film Logo (fallback Fade 500ms) when entering/leaving via control panel
+proRemote.OBS_SPECIAL_TRANSITION_SCENES = {
+  ["Stream Start"]  = true,
+  ["Testimonies"]   = true,
+  ["Stream Pause"]  = true,
+  ["Thanks Screen"] = true,
+}
+
+-- Preset ProPresenter presentations (UUID triggers)
+proRemote.PRESET_STARTING_ANNOUNCEMENTS_UUID = "C62E6449-3FD6-42C1-BDF4-CABCA5F8E491"
+proRemote.PRESET_PTZ_CAMERA_UUID            = "D47223A2-73BD-4C86-BB82-0D95E90D83F5"
+proRemote.PRESET_ENDING_ANNOUNCEMENTS_UUID  = "9CAAE21A-5AB2-41B3-B004-4135B36E134B"
+
+-- NEW: Utility presentations for one-shot triggers
+-- Blank Preview: 7475C13E-FE99-4AF1-8760-526A845A1860
+-- iMac Screen Share: AC813C59-FF90-483F-8532-406CF8DD056A
+proRemote.PRESET_BLANK_PREVIEW_UUID   = "7475C13E-FE99-4AF1-8760-526A845A1860"
+proRemote.PRESET_IMAC_SCREEN_UUID     = "AC813C59-FF90-483F-8532-406CF8DD056A"
+proRemote.SAFECLEAR_DELAY_SEC         = 0.50
+
+-- Service Logo dictionary (easy to update)
+-- Add/remove entries here.
+proRemote.SERVICE_LOGOS = {
+  { name = "Basic Service Logo",     uuid = "4ED2B2D8-EFE7-4875-BE88-186756A5E57E" },
+  { name = "Communion Service Logo", uuid = "82668B6D-5B98-4640-94E3-C69173FA4183" },
+  { name = "Youth Meeting Logo",     uuid = "4B871221-EC8A-47A3-86F2-3E2D27311303" },
+}
+
+------------------------------------------------------------
+-- NEW: Timer proxy config (use EXACT working ProPresenter URLs)
+------------------------------------------------------------
+
+proRemote.PROPRESENTER_TIMER_START = "http://localhost:49232/v1/timer/Service%20Countdown/start"
+proRemote.PROPRESENTER_TIMER_STOP  = "http://localhost:49232/v1/timer/Service%20Countdown/stop"
+proRemote.PROPRESENTER_TIMER_RESET = "http://localhost:49232/v1/timer/Service%20Countdown/reset"
+proRemote.TIMER_STOP_RESET_DELAY_SEC = 0.5
 
 ------------------------------------------------------------
 -- Utility
@@ -88,6 +127,38 @@ end
 
 local function nowSec()
   return hs.timer.secondsSinceEpoch()
+end
+
+local function sleepSec(sec)
+  sec = tonumber(sec) or 0
+  if sec <= 0 then return end
+  pcall(function()
+    hs.timer.usleep(math.floor(sec * 1000000))
+  end)
+end
+
+local function jsonResponse(obj)
+  return hs.json.encode(obj or {})
+end
+
+local function toBoolish(v)
+  v = tostring(v or ""):lower()
+  return (v == "1" or v == "true" or v == "yes" or v == "on")
+end
+
+------------------------------------------------------------
+-- NEW: Timer actions (proxy to ProPresenter)
+------------------------------------------------------------
+
+local function proTimerStart()
+  hs.http.asyncGet(proRemote.PROPRESENTER_TIMER_START, {}, function() end)
+end
+
+local function proTimerStopReset()
+  hs.http.asyncGet(proRemote.PROPRESENTER_TIMER_STOP, {}, function() end)
+  hs.timer.doAfter(proRemote.TIMER_STOP_RESET_DELAY_SEC or 0.5, function()
+    hs.http.asyncGet(proRemote.PROPRESENTER_TIMER_RESET, {}, function() end)
+  end)
 end
 
 ------------------------------------------------------------
@@ -138,7 +209,7 @@ local function activePresentationHasSingleGroupWithColon()
 end
 
 proRemote._bible_lastCondition = proRemote._bible_lastCondition or false
-proRemote._bible_lastMacroAt   = proRemote._bible_lastMacroAt or 0
+proRemote._bible_lastMacroAt   = proRemote._bible_lastMacroAt   or 0
 
 local function enforceBibleLookIfNeeded()
   if not proRemote.check_for_bible then
@@ -176,7 +247,7 @@ local function startBibleTimer()
 end
 
 ------------------------------------------------------------
--- Slide actions
+-- Slide actions (picker)
 ------------------------------------------------------------
 
 local function triggerNextSlide()
@@ -197,6 +268,44 @@ local function triggerFocusedSlide(index)
 end
 
 ------------------------------------------------------------
+-- Helpers: focused + destination check
+------------------------------------------------------------
+
+local function fetchFocusedInfo()
+  local ok, status, body = pcall(function()
+    return hs.http.get(proRemote.PROPRESENTER_FOCUSED_BASE, { ["accept"]="application/json" })
+  end)
+  if not ok or status ~= 200 or not body or body == "" then return nil end
+  local obj = decodeJson(body)
+  if type(obj) ~= "table" then return nil end
+  if type(obj.uuid) ~= "string" or obj.uuid == "" then return nil end
+  return obj
+end
+
+local function fetchPresentationByUUID(uuid)
+  if type(uuid) ~= "string" or uuid == "" then return nil, nil end
+  local url = string.format("%s/%s", proRemote.PROPRESENTER_UUID_BASE, uuid)
+  local ok, status, body = pcall(function()
+    return hs.http.get(url, { ["accept"]="application/json" })
+  end)
+  if not ok or status ~= 200 or not body or body == "" then return nil, body end
+  local obj = decodeJson(body)
+  return obj, body
+end
+
+local function presentationDestinationFromObj(fullObj)
+  local pres = fullObj and fullObj.presentation
+  local dest = pres and pres.destination
+  if type(dest) == "string" then return dest end
+  return ""
+end
+
+local function blankPresentationResponse(reason)
+  reason = tostring(reason or "blank")
+  return string.format('{"presentation":null,"reason":"%s"}', hs.http.encodeForQuery(reason)):gsub("%%22", '"')
+end
+
+------------------------------------------------------------
 -- Unified Presentation Fetcher (ACTIVE or FOCUSED MODE)
 ------------------------------------------------------------
 
@@ -211,24 +320,44 @@ local function fetchFullPresentationJSON()
     return '{"error":"cannot fetch active presentation"}'
   end
 
-  local ok1, status1, focusedBody = pcall(function()
-    return hs.http.get(proRemote.PROPRESENTER_FOCUSED_BASE, { ["accept"]="application/json" })
-  end)
-
-  local focused = decodeJson(focusedBody)
-  if not ok1 or status1 ~= 200 or not focused or not focused.uuid then
-    return '{"error":"cannot fetch focused presentation"}'
+  local focused = fetchFocusedInfo()
+  if not focused or not focused.uuid then
+    return blankPresentationResponse("no_focused")
   end
 
-  local uuid = focused.uuid
-  local fullURL = string.format("%s/%s", proRemote.PROPRESENTER_UUID_BASE, uuid)
+  local fullObj, fullBody = fetchPresentationByUUID(focused.uuid)
+  if not fullObj or not fullBody then
+    return '{"error":"cannot fetch presentation by uuid"}'
+  end
 
-  local ok2, status2, fullBody = pcall(function()
-    return hs.http.get(fullURL, { ["accept"]="application/json" })
-  end)
+  local dest = presentationDestinationFromObj(fullObj)
 
-  if ok2 and status2 == 200 and fullBody then return fullBody end
-  return '{"error":"cannot fetch presentation by uuid"}'
+  if dest == "announcements" then
+    pcall(function()
+      hs.http.get(proRemote.PROPRESENTER_ACTIVE_FOCUS, { ["accept"]="application/json" })
+    end)
+
+    sleepSec(proRemote.FOCUSED_RECHECK_DELAY_SEC)
+
+    local focused2 = fetchFocusedInfo()
+    if not focused2 or not focused2.uuid then
+      return blankPresentationResponse("focused_is_announcements")
+    end
+
+    local fullObj2, fullBody2 = fetchPresentationByUUID(focused2.uuid)
+    if not fullObj2 or not fullBody2 then
+      return blankPresentationResponse("focused_is_announcements")
+    end
+
+    local dest2 = presentationDestinationFromObj(fullObj2)
+    if dest2 == "presentation" then
+      return fullBody2
+    end
+
+    return blankPresentationResponse("focused_is_announcements")
+  end
+
+  return fullBody
 end
 
 ------------------------------------------------------------
@@ -255,7 +384,33 @@ local function fetchThumbnail(uuid, index)
 end
 
 ------------------------------------------------------------
--- OBS Bridge start/watch + set mode
+-- ProPresenter one-shot actions for control panel
+------------------------------------------------------------
+
+local function proTriggerPresentationUUID(uuid)
+  if type(uuid) ~= "string" or uuid == "" then return false end
+  local url = string.format("http://localhost:49232/v1/presentation/%s/trigger", uuid)
+  hs.http.asyncGet(url, {}, function() end)
+  return true
+end
+
+local function proTriggerPresentationUUIDAfter(uuid, delaySec)
+  delaySec = tonumber(delaySec) or 0
+  if delaySec <= 0 then
+    return proTriggerPresentationUUID(uuid)
+  end
+  hs.timer.doAfter(delaySec, function()
+    proTriggerPresentationUUID(uuid)
+  end)
+  return true
+end
+
+local function proClearAnnouncementsLayer()
+  hs.http.asyncGet(proRemote.PROPRESENTER_CLEAR_ANNOUNCEMENTS, {}, function() end)
+end
+
+------------------------------------------------------------
+-- OBS Bridge start/watch
 ------------------------------------------------------------
 
 proRemote._bridge = proRemote._bridge or { task=nil, running=false }
@@ -282,11 +437,15 @@ local function bridgeStart()
 
   bridgeKillTask()
 
-  local function streamFn(task, stdOut, stdErr) end
+  -- IMPORTANT: streaming callback MUST return boolean (true = keep streaming)
+  local function streamFn(task, stdOut, stdErr)
+    return true
+  end
 
   local function exitFn(task, exitCode, stdOut, stdErr)
     proRemote._bridge.running = false
     hs.timer.doAfter(1.0, function() bridgeStart() end)
+    return true
   end
 
   local t = hs.task.new(proRemote.NODE_PATH, exitFn, streamFn, { proRemote.OBS_BRIDGE_SCRIPT })
@@ -316,158 +475,61 @@ local function bridgeWatchdogStart()
   end)
 end
 
-local function bridgeSetMode(mode)
-  if not proRemote.OBS_BRIDGE_ENABLED then return end
-  mode = tostring(mode or ""):lower()
-  if mode ~= "none" and mode ~= "ann" and mode ~= "cam" then return end
+local function bridgeTrySetScene(sceneName, transitionName, durationMs)
+  if not proRemote.OBS_BRIDGE_ENABLED then return false end
+  if type(sceneName) ~= "string" or sceneName == "" then return false end
+
+  transitionName = tostring(transitionName or "")
+  durationMs = tonumber(durationMs)
 
   local url = string.format(
-    "%s/set?mode=%s&scene=%s&srcAnn=%s&srcCam=%s",
+    "%s/scene/set?name=%s&transition=%s&duration=%s",
     proRemote.OBS_BRIDGE_BASE,
-    hs.http.encodeForQuery(mode),
-    hs.http.encodeForQuery(proRemote.OBS_SCENE_NAME),
-    hs.http.encodeForQuery(proRemote.OBS_SOURCE_ANNOUNCEMENT),
-    hs.http.encodeForQuery(proRemote.OBS_SOURCE_CAMERA)
+    hs.http.encodeForQuery(sceneName),
+    hs.http.encodeForQuery(transitionName),
+    hs.http.encodeForQuery(durationMs and tostring(durationMs) or "")
   )
 
-  hs.http.asyncGet(url, {}, function() end)
-end
-
-------------------------------------------------------------
--- Announcement state + watcher
-------------------------------------------------------------
-
-proRemote._ann = proRemote._ann or { lastName="", lastDesired="none" }
-
-local function announcementNameFromObj(obj)
-  if type(obj) ~= "table" then return "" end
-  local a = obj.announcement
-  if a == nil then return "" end
-  local nm = a and a.id and a.id.name
-  if type(nm) ~= "string" then return "" end
-  return nm
-end
-
-local function desiredFromAnnouncementName(name)
-  name = (type(name) == "string") and name or ""
-  if name == "" then return "none" end
-  local lower = string.lower(name)
-  if lower:find(string.lower(proRemote.ANNOUNCEMENT_CAMERA_KEYWORD), 1, true) ~= nil then
-    return "cam"
-  end
-  return "ann"
-end
-
-local function applyAnnouncementState(name)
-  local desired = desiredFromAnnouncementName(name)
-
-  if name ~= proRemote._ann.lastName or desired ~= proRemote._ann.lastDesired then
-    proRemote._ann.lastName = name
-    proRemote._ann.lastDesired = desired
-  end
-
-  bridgeSetMode(desired)
-end
-
-local function bootstrapAnnouncementOnce()
-  local ok, status, body = pcall(function()
-    return hs.http.get(proRemote.PROPRESENTER_ANNOUNCEMENT_ACTIVE, { ["accept"]="application/json" })
+  local ok, status = pcall(function()
+    return hs.http.get(url, { ["accept"]="application/json" })
   end)
 
-  if not ok or status ~= 200 or not body or body == "" then
-    applyAnnouncementState("")
+  return ok and status == 200
+end
+
+local function obsSetSceneWithTransitionPolicy(sceneName)
+  local isSpecial = proRemote.OBS_SPECIAL_TRANSITION_SCENES[sceneName] == true
+
+  if not isSpecial then
+    bridgeTrySetScene(sceneName, proRemote.OBS_DEFAULT_TRANSITION_NAME, nil)
     return
   end
 
-  local obj = decodeJson(body)
-  applyAnnouncementState(announcementNameFromObj(obj))
+  local okOld = bridgeTrySetScene(sceneName, proRemote.OBS_SPECIAL_TRANSITION_NAME, nil)
+  if okOld then return end
+
+  local okFade = bridgeTrySetScene(sceneName, proRemote.OBS_FALLBACK_TRANSITION_NAME, proRemote.OBS_FALLBACK_TRANSITION_MS)
+  if okFade then return end
+
+  bridgeTrySetScene(sceneName, proRemote.OBS_DEFAULT_TRANSITION_NAME, nil)
 end
 
 ------------------------------------------------------------
--- Chunked record stream: JSON records separated by blank lines
+-- Service logos API helpers
 ------------------------------------------------------------
 
-proRemote._streams = proRemote._streams or {}
-
-local function startChunkedRecordStream(name, url, onJsonObj)
-  local existing = proRemote._streams[name]
-  if existing and existing.task then pcall(function() existing.task:terminate() end) end
-
-  proRemote._streams[name] = { buffer = "" }
-
-  local function restartLater()
-    if not proRemote.USE_CHUNKED_STREAMS then return end
-    hs.timer.doAfter(proRemote.STREAM_RESTART_DELAY_SEC, function()
-      if proRemote.USE_CHUNKED_STREAMS then
-        startChunkedRecordStream(name, url, onJsonObj)
-      end
-    end)
-  end
-
-  local function streamCallback(task, stdOut, stdErr)
-    if not stdOut or stdOut == "" then return end
-
-    local s = proRemote._streams[name]
-    if not s then return end
-
-    local chunk = stdOut:gsub("\r", "")
-    s.buffer = (s.buffer or "") .. chunk
-
-    while true do
-      local sep = s.buffer:find("\n\n", 1, true)
-      if not sep then break end
-
-      local record = s.buffer:sub(1, sep - 1)
-      s.buffer = s.buffer:sub(sep + 2)
-
-      record = trim(record)
-      if record ~= "" then
-        local obj = decodeJson(record)
-        if obj then pcall(onJsonObj, obj) end
+local function getServiceLogosList()
+  local items = {}
+  for _, it in ipairs(proRemote.SERVICE_LOGOS or {}) do
+    if type(it) == "table" then
+      local nm = tostring(it.name or "")
+      local uu = tostring(it.uuid or "")
+      if nm ~= "" and uu ~= "" then
+        table.insert(items, { name = nm, uuid = uu })
       end
     end
-
-    if #s.buffer > 200000 then
-      s.buffer = s.buffer:sub(-20000)
-    end
   end
-
-  local function exitCallback(task, exitCode, stdOut, stdErr)
-    restartLater()
-  end
-
-  local args = { "-sN", "-H", "Accept: application/json", url }
-  local t = hs.task.new(proRemote.CURL_PATH, exitCallback, streamCallback, args)
-  if not t then
-    restartLater()
-    return
-  end
-
-  proRemote._streams[name].task = t
-  t:start()
-end
-
-local function startAnnouncementWatcher()
-  if not proRemote.USE_CHUNKED_STREAMS then return end
-  startChunkedRecordStream(
-    "announcement_active",
-    proRemote.PROPRESENTER_ANNOUNCEMENT_ACTIVE .. "?chunked=true",
-    function(obj)
-      applyAnnouncementState(announcementNameFromObj(obj))
-    end
-  )
-end
-
-local function startAnnouncementPollFallback()
-  if proRemote.announcementPollTimer then proRemote.announcementPollTimer:stop() end
-  proRemote.announcementPollTimer = hs.timer.doEvery(proRemote.ANNOUNCEMENT_POLL_FALLBACK_SEC, function()
-    local ok, status, body = pcall(function()
-      return hs.http.get(proRemote.PROPRESENTER_ANNOUNCEMENT_ACTIVE, { ["accept"]="application/json" })
-    end)
-    if not ok or status ~= 200 or not body or body == "" then return end
-    local obj = decodeJson(body)
-    if obj then applyAnnouncementState(announcementNameFromObj(obj)) end
-  end)
+  return items
 end
 
 ------------------------------------------------------------
@@ -490,7 +552,7 @@ end
 -- Route Handler
 ------------------------------------------------------------
 
-local function handleHttpPath(rawPath)
+local function handleHttpPath(method, rawPath, body)
   local p = cleanPath(rawPath)
   local params = parseQuery(rawPath)
 
@@ -508,14 +570,25 @@ local function handleHttpPath(rawPath)
     triggerFocusedSlide(idx)
     return "OK\n", 200, "text/plain"
 
+  ----------------------------------------------------------
+  -- Timer proxy endpoints
+  ----------------------------------------------------------
+  elseif p == "/timer/start" then
+    proTimerStart()
+    return "OK\n", 200, "text/plain"
+
+  elseif p == "/timer/stop-reset" then
+    proTimerStopReset()
+    return "OK\n", 200, "text/plain"
+
   elseif p == "/active-presentation" then
     return fetchFullPresentationJSON(), 200, "application/json"
 
   elseif p == "/slide-index" then
-    local ok, status, body = pcall(function()
+    local ok, status, b = pcall(function()
       return hs.http.get(proRemote.PROPRESENTER_SLIDE_INDEX, { ["accept"]="application/json" })
     end)
-    return body or "{}", 200, "application/json"
+    return b or "{}", 200, "application/json"
 
   elseif p == "/thumbnail" then
     return fetchThumbnail(params.uuid, tonumber(params.index))
@@ -527,6 +600,93 @@ local function handleHttpPath(rawPath)
 
   elseif p == "/health" then
     return "OK", 200, "text/plain"
+
+  elseif p == "/service_logos" then
+    local out = { items = getServiceLogosList() }
+    return jsonResponse(out), 200, "application/json"
+
+  elseif p == "/preset" then
+    if method ~= "POST" then
+      return "Method Not Allowed", 405, "text/plain"
+    end
+
+    local obj = decodeJson(body or "")
+    if type(obj) ~= "table" then
+      return jsonResponse({ ok=false, error="bad_json" }), 400, "application/json"
+    end
+
+    local preset = tostring(obj.preset or ""):lower()
+    local serviceLogoUuid = tostring(obj.service_logo_uuid or "")
+    local doSafeClear = toBoolish(params["safeclear"])
+    local delay = tonumber(proRemote.SAFECLEAR_DELAY_SEC) or 0.5
+
+    if preset == "stream_beginning" then
+      proTriggerPresentationUUID(proRemote.PRESET_STARTING_ANNOUNCEMENTS_UUID)
+      obsSetSceneWithTransitionPolicy("Stream Start")
+      return jsonResponse({ ok=true }), 200, "application/json"
+
+    elseif preset == "camera" then
+      -- Camera button behavior
+      proTriggerPresentationUUID(proRemote.PRESET_PTZ_CAMERA_UUID)
+      obsSetSceneWithTransitionPolicy("PTZ Camera")
+
+      -- If called with ?safeclear=true, trigger Blank Preview AFTER a short delay
+      if doSafeClear then
+        proTriggerPresentationUUIDAfter(proRemote.PRESET_BLANK_PREVIEW_UUID, delay)
+      end
+
+      return jsonResponse({ ok=true, safeclear=doSafeClear }), 200, "application/json"
+
+    elseif preset == "show_slides" then
+      proClearAnnouncementsLayer()
+      obsSetSceneWithTransitionPolicy("ProPresenter Input")
+      return jsonResponse({ ok=true }), 200, "application/json"
+
+    elseif preset == "service_logo" then
+      if serviceLogoUuid == "" then
+        return jsonResponse({ ok=false, error="missing_service_logo_uuid" }), 400, "application/json"
+      end
+
+      -- Service Logo button behavior
+      proTriggerPresentationUUID(serviceLogoUuid)
+      obsSetSceneWithTransitionPolicy("Audience Camera")
+
+      -- If called with ?safeclear=true, trigger Blank Preview AFTER a short delay
+      if doSafeClear then
+        proTriggerPresentationUUIDAfter(proRemote.PRESET_BLANK_PREVIEW_UUID, delay)
+      end
+
+      return jsonResponse({ ok=true, safeclear=doSafeClear }), 200, "application/json"
+
+    elseif preset == "testimonies" then
+      if serviceLogoUuid == "" then
+        return jsonResponse({ ok=false, error="missing_service_logo_uuid" }), 400, "application/json"
+      end
+      proTriggerPresentationUUID(serviceLogoUuid)
+      obsSetSceneWithTransitionPolicy("Testimonies")
+      return jsonResponse({ ok=true }), 200, "application/json"
+
+    elseif preset == "ending_stream" then
+      proTriggerPresentationUUID(proRemote.PRESET_ENDING_ANNOUNCEMENTS_UUID)
+      obsSetSceneWithTransitionPolicy("Thanks Screen")
+      return jsonResponse({ ok=true }), 200, "application/json"
+
+    ----------------------------------------------------------
+    -- NEW buttons that were previously not implemented
+    ----------------------------------------------------------
+    elseif preset == "safely_clear_slide" then
+      -- No wait: immediately trigger Blank Preview
+      proTriggerPresentationUUID(proRemote.PRESET_BLANK_PREVIEW_UUID)
+      return jsonResponse({ ok=true }), 200, "application/json"
+
+    elseif preset == "nsc_setup" then
+      -- No wait: immediately trigger iMac Screen Share
+      proTriggerPresentationUUID(proRemote.PRESET_IMAC_SCREEN_UUID)
+      return jsonResponse({ ok=true }), 200, "application/json"
+
+    else
+      return jsonResponse({ ok=false, error="unknown_preset" }), 400, "application/json"
+    end
   end
 
   return "Not found", 404, "text/plain"
@@ -539,13 +699,13 @@ end
 local function httpCallback(method, path, headers, body)
   local h = {
     ["Access-Control-Allow-Origin"]  = "*",
-    ["Access-Control-Allow-Methods"] = "GET, OPTIONS",
+    ["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS",
     ["Access-Control-Allow-Headers"] = "Content-Type",
   }
 
   if method == "OPTIONS" then return "", 204, h end
 
-  local ok, bodyData, status, contentType = pcall(handleHttpPath, path)
+  local ok, bodyData, status, contentType = pcall(handleHttpPath, method, path, body)
   if not ok then
     return "Internal error\n", 500, h
   end
@@ -569,9 +729,5 @@ startBibleTimer()
 
 bridgeStart()
 bridgeWatchdogStart()
-
-bootstrapAnnouncementOnce()
-startAnnouncementWatcher()
-startAnnouncementPollFallback()
 
 hs.alert.show("ProPresenter remote ready")
