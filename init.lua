@@ -300,9 +300,21 @@ local function presentationDestinationFromObj(fullObj)
   return ""
 end
 
+local function activeUUIDFromObj(activeObj)
+  local pres = activeObj and activeObj.presentation
+  local id = pres and pres.id
+  local uuid = id and id.uuid
+  if type(uuid) == "string" then return uuid end
+  return ""
+end
+
 local function blankPresentationResponse(reason)
   reason = tostring(reason or "blank")
   return string.format('{"presentation":null,"reason":"%s"}', hs.http.encodeForQuery(reason)):gsub("%%22", '"')
+end
+
+local function isBlankPreviewUUID(uuid)
+  return type(uuid) == "string" and uuid ~= "" and uuid == proRemote.PRESET_BLANK_PREVIEW_UUID
 end
 
 ------------------------------------------------------------
@@ -312,17 +324,40 @@ end
 local function fetchFullPresentationJSON()
   refreshPresentationBase()
 
+  ----------------------------------------------------------
+  -- ACTIVE MODE
+  -- If active is Blank Preview, DO NOT show it.
+  -- Instead: try showing focused (with the same filtering rules).
+  ----------------------------------------------------------
   if currentMode() == "active" then
     local ok, status, body = pcall(function()
       return hs.http.get(proRemote.PROPRESENTER_ACTIVE_BASE, { ["accept"]="application/json" })
     end)
-    if ok and status == 200 and body then return body end
-    return '{"error":"cannot fetch active presentation"}'
+    if not ok or status ~= 200 or not body then
+      return '{"error":"cannot fetch active presentation"}'
+    end
+
+    local activeObj = decodeJson(body)
+    local activeUUID = activeUUIDFromObj(activeObj)
+
+    if isBlankPreviewUUID(activeUUID) then
+      -- Fall through to focused logic below
+    else
+      return body
+    end
   end
 
+  ----------------------------------------------------------
+  -- FOCUSED MODE (also used as fallback when active is Blank Preview)
+  -- If focused is Blank Preview, show nothing.
+  ----------------------------------------------------------
   local focused = fetchFocusedInfo()
   if not focused or not focused.uuid then
     return blankPresentationResponse("no_focused")
+  end
+
+  if isBlankPreviewUUID(focused.uuid) then
+    return blankPresentationResponse("blank_preview")
   end
 
   local fullObj, fullBody = fetchPresentationByUUID(focused.uuid)
@@ -330,8 +365,16 @@ local function fetchFullPresentationJSON()
     return '{"error":"cannot fetch presentation by uuid"}'
   end
 
+  -- Extra safety: if the fetched presentation is Blank Preview, hide it
+  if isBlankPreviewUUID(focused.uuid) then
+    return blankPresentationResponse("blank_preview")
+  end
+
   local dest = presentationDestinationFromObj(fullObj)
 
+  ----------------------------------------------------------
+  -- Existing rule: if focused destination=announcements, try /active/focus once
+  ----------------------------------------------------------
   if dest == "announcements" then
     pcall(function()
       hs.http.get(proRemote.PROPRESENTER_ACTIVE_FOCUS, { ["accept"]="application/json" })
@@ -342,6 +385,11 @@ local function fetchFullPresentationJSON()
     local focused2 = fetchFocusedInfo()
     if not focused2 or not focused2.uuid then
       return blankPresentationResponse("focused_is_announcements")
+    end
+
+    -- NEW: if refocused becomes Blank Preview, hide it
+    if isBlankPreviewUUID(focused2.uuid) then
+      return blankPresentationResponse("blank_preview")
     end
 
     local fullObj2, fullBody2 = fetchPresentationByUUID(focused2.uuid)
@@ -357,6 +405,7 @@ local function fetchFullPresentationJSON()
     return blankPresentationResponse("focused_is_announcements")
   end
 
+  -- If destination is "presentation" (or anything else), show as before
   return fullBody
 end
 
