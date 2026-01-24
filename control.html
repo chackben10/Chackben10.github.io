@@ -18,7 +18,16 @@
       --btn-bg: #ffffff;
       --btn-text: #111111;
       --btn-border: #d0d0d0;
-      --btn-hover: rgba(128,128,128,0.12);
+
+      /* NEW: stronger hover/press visuals (light theme) */
+      --btn-hover-bg: rgba(0,0,0,0.08);
+      --btn-active-bg: rgba(0,0,0,0.12);
+      --btn-hover-shadow: 0 10px 22px rgba(0,0,0,0.14);
+      --btn-active-shadow: 0 6px 16px rgba(0,0,0,0.16);
+
+      /* Red buttons: keep red, but shift more on hover/press */
+      --danger-hover: #ff6b6b;   /* lighter red */
+      --danger-active: #ff3b3b;  /* slightly deeper red */
 
       --modal-bg: #ffffff;
       --modal-shadow: rgba(0,0,0,0.25);
@@ -44,7 +53,16 @@
       --btn-bg: #111111;
       --btn-text: #ffffff;
       --btn-border: #444444;
-      --btn-hover: rgba(255,255,255,0.08);
+
+      /* NEW: stronger hover/press visuals (dark theme) */
+      --btn-hover-bg: rgba(255,255,255,0.12);
+      --btn-active-bg: rgba(255,255,255,0.18);
+      --btn-hover-shadow: 0 14px 28px rgba(0,0,0,0.60);
+      --btn-active-shadow: 0 10px 22px rgba(0,0,0,0.65);
+
+      /* Red buttons: more visible change in dark too */
+      --danger-hover: #ff6b6b;
+      --danger-active: #ff3b3b;
 
       --modal-bg: #111111;
       --modal-shadow: rgba(0,0,0,0.6);
@@ -102,8 +120,10 @@
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      transition: background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
     }
-    .top-btn:hover { opacity: 1; background: var(--btn-hover); }
+    .top-btn:hover { opacity: 1; background: var(--btn-hover-bg); box-shadow: var(--btn-hover-shadow); }
+    .top-btn:active { background: var(--btn-active-bg); box-shadow: var(--btn-active-shadow); transform: translateY(1px); }
 
     .panel-title {
       color: var(--title-color);
@@ -126,7 +146,7 @@
       grid-template-columns: 1fr;
       gap: calc(var(--grid-gap-base) * var(--btn-scale));
       margin-top: 12px;
-      align-items: stretch; /* ensure cards stretch to row height */
+      align-items: stretch;
     }
 
     @media (min-width: 700px) {
@@ -138,7 +158,7 @@
       width: 100%;
       display: flex;
       flex-direction: column;
-      height: 100%; /* allow grid row to define height */
+      height: 100%;
     }
 
     .preset-main,
@@ -156,17 +176,20 @@
       user-select: none;
       -webkit-user-select: none;
 
-      transition: transform 0.07s ease, filter 0.07s ease, background 0.15s ease;
+      /* UPDATED: stronger hover/active transitions */
+      transition:
+        transform 0.10s ease,
+        filter 0.10s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease;
+      box-shadow: 0 0 0 rgba(0,0,0,0); /* baseline */
     }
 
     .preset-main {
       padding: calc(14px * var(--btn-scale)) calc(14px * var(--btn-scale));
       border-radius: clamp(8px, calc(12px * var(--btn-scale)), 16px);
-
-      /* key for equal-height rows: main part expands to fill */
       flex: 1 1 auto;
 
-      /* keep content top-aligned even when stretched taller */
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
@@ -191,14 +214,23 @@
       letter-spacing: 0.2px;
     }
 
+    /* UPDATED: more intense hover/press for normal buttons */
     .preset-main:hover,
-    .preset-addon:hover { background: var(--btn-hover); }
+    .preset-addon:hover {
+      background: var(--btn-hover-bg);
+      box-shadow: var(--btn-hover-shadow);
+    }
 
     .preset-main:active,
-    .preset-addon:active { transform: scale(0.99); filter: brightness(0.98); }
+    .preset-addon:active {
+      background: var(--btn-active-bg);
+      box-shadow: var(--btn-active-shadow);
+      transform: translateY(1px) scale(0.995);
+      filter: none;
+    }
 
     .preset-main:disabled,
-    .preset-addon:disabled { opacity: 0.55; cursor: not-allowed; }
+    .preset-addon:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
     .preset-title {
       font-size: calc(1.15rem * var(--btn-scale));
@@ -263,8 +295,19 @@
       border-color: color-mix(in srgb, var(--danger) 70%, var(--btn-border));
     }
     .danger-fill .preset-sub { color: rgba(255,255,255,0.92); }
-    .danger-fill:hover { filter: brightness(0.98); background: var(--danger); }
-    .danger-fill:active { filter: brightness(0.96); }
+
+    /* UPDATED: more intense hover/press for red buttons */
+    .danger-fill:hover {
+      background: var(--danger-hover);
+      box-shadow: var(--btn-hover-shadow);
+      filter: none;
+    }
+    .danger-fill:active {
+      background: var(--danger-active);
+      box-shadow: var(--btn-active-shadow);
+      transform: translateY(1px) scale(0.995);
+      filter: none;
+    }
 
     /* Red filled addon button */
     .preset-addon.danger-fill {
@@ -272,7 +315,15 @@
       color: #ffffff;
       border-color: color-mix(in srgb, var(--danger) 70%, var(--btn-border));
     }
-    .preset-addon.danger-fill:hover { filter: brightness(0.98); background: var(--danger); }
+    .preset-addon.danger-fill:hover {
+      background: var(--danger-hover);
+      box-shadow: var(--btn-hover-shadow);
+    }
+    .preset-addon.danger-fill:active {
+      background: var(--danger-active);
+      box-shadow: var(--btn-active-shadow);
+      transform: translateY(1px) scale(0.995);
+    }
 
     /* Settings modal */
     .settings-overlay {
@@ -375,9 +426,11 @@
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.10s ease;
     }
-    .mini-btn:hover { background: rgba(128,128,128,0.12); }
-    .mini-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .mini-btn:hover { background: var(--btn-hover-bg); box-shadow: var(--btn-hover-shadow); }
+    .mini-btn:active { background: var(--btn-active-bg); box-shadow: var(--btn-active-shadow); transform: translateY(1px); }
+    .mini-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
     .segment {
       display: flex;
@@ -396,13 +449,13 @@
       color: var(--settings-text);
       cursor: pointer;
       font-size: 0.9rem;
-      transition: background 0.15s;
+      transition: background 0.15s, box-shadow 0.15s;
       -webkit-tap-highlight-color: transparent;
       font-weight: 900;
       touch-action: manipulation;
     }
 
-    .segment button:hover { background: rgba(128,128,128,0.12); }
+    .segment button:hover { background: var(--btn-hover-bg); }
     .segment button.active {
       background: #ff5252;
       color: white;
@@ -422,8 +475,10 @@
       -webkit-tap-highlight-color: transparent;
       font-weight: 900;
       touch-action: manipulation;
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.10s ease;
     }
-    .settings-close-btn:hover { background: rgba(128,128,128,0.12); }
+    .settings-close-btn:hover { background: var(--btn-hover-bg); box-shadow: var(--btn-hover-shadow); }
+    .settings-close-btn:active { background: var(--btn-active-bg); box-shadow: var(--btn-active-shadow); transform: translateY(1px); }
   </style>
 </head>
 
@@ -829,7 +884,6 @@
       });
 
       // ====== Fix accidental presses during scroll (touch devices) ======
-      // Fire only on "tap" (small movement). Prevent delayed click from scroll.
       function attachTapHandler(el, handler) {
         if (!el) return;
 
@@ -864,7 +918,6 @@
         el.addEventListener("pointerup", finish);
         el.addEventListener("pointercancel", () => { activePointerId = null; moved = false; });
 
-        // Block native click (prevents "scroll then click" behavior)
         el.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -887,7 +940,7 @@
         if (presetName === "testimonies") {
           const uuid = getStored(TESTIMONIES_LOGO_UUID_KEY) || testimoniesLogoSelect.value;
           if (!uuid) { setLastAction("Failed (no Testimonies logo selected)"); return; }
-          payload.service_logo_uuid = uuid; // backend expects service_logo_uuid
+          payload.service_logo_uuid = uuid;
         }
 
         setLastAction(`Running: ${presetName}`);
@@ -905,7 +958,6 @@
         }
       }
 
-      // Helper to run preset with ?safeclear=true query param
       async function runPresetSafeClear(presetName) {
         const ok = await testBackend();
         if (!ok) { setLastAction("Failed (backend offline)"); return; }
@@ -935,7 +987,6 @@
         }
       }
 
-      // Wire buttons via tap handler
       attachTapHandler(btnStreamBeginning, () => runPreset("stream_beginning"));
       attachTapHandler(btnCamera, () => runPreset("camera"));
       attachTapHandler(btnServiceLogo, () => runPreset("service_logo"));
@@ -943,15 +994,12 @@
       attachTapHandler(btnTestimonies, () => runPreset("testimonies"));
       attachTapHandler(btnEndingStream, () => runPreset("ending_stream"));
 
-      // Attached sub-actions (same endpoint + ?safeclear=true)
       attachTapHandler(btnCameraSafeClear, () => runPresetSafeClear("camera"));
       attachTapHandler(btnServiceLogoSafeClear, () => runPresetSafeClear("service_logo"));
 
-      // Standalone buttons (stubs we will implement later in init.lua)
       attachTapHandler(btnSafelyClearSlide, () => runPreset("safely_clear_slide"));
       attachTapHandler(btnNSCSetup, () => runPreset("nsc_setup"));
 
-      // Settings modal
       const settingsOverlay = document.getElementById("settingsOverlay");
       const settingsButton = document.getElementById("settingsButton");
       const settingsCloseButton = document.getElementById("settingsCloseButton");
@@ -980,7 +1028,6 @@
         if (ok) await refreshServiceLogos();
       };
 
-      // Slider behavior (no visible % label)
       function syncBtnSliderUI() {
         const pct = getBtnScalePercent();
         btnTextSizeSlider.value = pct;
@@ -999,14 +1046,12 @@
         loadTheme();
         updateThemeSegmentUI(localStorage.getItem(THEME_KEY) || "system");
 
-        // apply stored button scale immediately
         syncBtnSliderUI();
 
         setButtonsEnabled(false);
         setBackendStatus(false, "Backend: Checking…");
         setLastAction("—");
 
-        // Startup: attempt backend + logo list
         const ok = await testBackend();
         if (ok) await refreshServiceLogos();
         else {
@@ -1015,7 +1060,6 @@
           syncDescriptions();
         }
 
-        // Light polling: every 10s
         setInterval(testBackend, 10000);
       }
 
