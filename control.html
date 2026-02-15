@@ -579,6 +579,9 @@
       box-shadow: var(--btn-active-shadow);
       transform: translateY(1px) scale(0.995);
     }
+
+    /* ===== Hide Presets heading + description when toggled off ===== */
+    .presets-header[hidden] { display: none !important; }
   </style>
 </head>
 
@@ -589,10 +592,13 @@
       <button class="top-btn" id="settingsButton">Settings</button>
     </div>
 
-    <div class="panel-title">Presets</div>
-    <div class="desc">
-      These buttons are presets that trigger multiple actions at once (ProPresenter + OBS).
-      You can still control ProPresenter and OBS manually on their own screens anytime.
+    <!-- Wrap title + description so we can hide both cleanly -->
+    <div class="presets-header" id="presetsHeader">
+      <div class="panel-title">Presets</div>
+      <div class="desc">
+        These buttons are presets that trigger multiple actions at once (ProPresenter + OBS).
+        You can still control ProPresenter and OBS manually on their own screens anytime.
+      </div>
     </div>
 
     <div class="grid">
@@ -719,6 +725,18 @@
         </div>
       </div>
 
+      <!-- Show Description toggle -->
+      <div class="settings-section">
+        <div class="settings-label">Show Description</div>
+        <div class="settings-muted">Hide/show the “Presets” header and description on the main page.</div>
+        <div class="pill-row" style="margin-top: 10px;">
+          <label class="pill" style="cursor:pointer; user-select:none;">
+            <input id="showDescToggle" type="checkbox" style="margin-right: 10px; transform: scale(1.2);">
+            <span class="status-text" style="font-weight:900;">Enabled</span>
+          </label>
+        </div>
+      </div>
+
       <!-- Button scale slider (no extra text / no % label) -->
       <div class="settings-section">
         <input type="range" id="btnTextSizeSlider" min="40" max="200" step="10" style="width:100%;">
@@ -750,6 +768,9 @@
 
       // Button scaling (40–200)
       const BTN_SCALE_KEY = "icas-control-btn-scale";
+
+      // Show/hide Presets header+desc
+      const SHOW_DESC_KEY = "icas-control-show-description";
 
       function normalizeBase(u) {
         u = String(u || "").trim();
@@ -814,6 +835,26 @@
       function applyBtnScale(percent) {
         const s = clamp((percent || 100) / 100, 0.4, 2.0);
         document.documentElement.style.setProperty("--btn-scale", String(s));
+      }
+
+      // ====== Show Description toggle ======
+      const presetsHeader = document.getElementById("presetsHeader");
+      const showDescToggle = document.getElementById("showDescToggle");
+
+      function getShowDesc() {
+        const raw = localStorage.getItem(SHOW_DESC_KEY);
+        if (raw === null) return true; // default ON
+        return raw === "1";
+      }
+
+      function setShowDesc(v) {
+        localStorage.setItem(SHOW_DESC_KEY, v ? "1" : "0");
+        applyShowDesc(v);
+      }
+
+      function applyShowDesc(enabled) {
+        if (presetsHeader) presetsHeader.hidden = !enabled;
+        if (showDescToggle) showDescToggle.checked = !!enabled;
       }
 
       // ====== UI refs ======
@@ -1142,9 +1183,19 @@
         setBtnScalePercent(btnTextSizeSlider.value);
       });
 
+      // Toggle handler
+      if (showDescToggle) {
+        showDescToggle.addEventListener("change", () => {
+          setShowDesc(showDescToggle.checked);
+        });
+      }
+
       async function init() {
         loadTheme();
         updateThemeSegmentUI(localStorage.getItem(THEME_KEY) || "system");
+
+        // default ON if unset
+        applyShowDesc(getShowDesc());
 
         syncBtnSliderUI();
 
