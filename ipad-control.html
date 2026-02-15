@@ -7,28 +7,32 @@
 
   <style>
     :root{
-      /* Set this to match the left page background (default: white) */
+      /* Match the left page background (your left site is white) */
       --page-bg: #ffffff;
 
-      /* Split + divider */
-      --divider-w: 18px;
-      --divider-bg: rgba(0,0,0,0.18);
-      --divider-bg-dark: rgba(255,255,255,0.18);
-      --divider-outline: rgba(0,0,0,0.28);
-      --divider-outline-dark: rgba(255,255,255,0.28);
-
-      /* Default left width if nothing saved yet */
+      /* Divider */
+      --divider-w: 14px;
       --leftW: 50vw;
+
+      /* Colors (subtle, clean) */
+      --rail: rgba(0,0,0,0.10);
+      --rail-border: rgba(0,0,0,0.12);
+      --thumb: rgba(0,0,0,0.18);
+      --thumb-strong: rgba(0,0,0,0.28);
+
+      --hint-bg: rgba(0,0,0,0.72);
+      --hint-text: rgba(255,255,255,0.96);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; width: 100%; }
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    html, body{ height:100%; width:100%; }
 
     body{
       background: var(--page-bg);
       overflow: hidden;
       -webkit-overflow-scrolling: touch;
-      touch-action: none; /* we handle drag */
+      /* Allow normal touches; divider will manage its own behavior */
+      touch-action: manipulation;
     }
 
     .split{
@@ -47,13 +51,13 @@
 
     #leftPane{
       flex: 0 0 var(--leftW);
-      min-width: 120px;
-      max-width: calc(100vw - 120px - var(--divider-w));
+      min-width: 160px;
+      max-width: calc(100vw - 160px - var(--divider-w));
     }
 
     #rightPane{
       flex: 1 1 auto;
-      min-width: 120px;
+      min-width: 160px;
       background: var(--page-bg);
     }
 
@@ -62,74 +66,106 @@
       height: 100%;
       border: 0;
       display: block;
-      background: transparent; /* lets the container bg show through */
+      background: transparent;
     }
 
-    /* Divider */
+    /* Divider (clean + subtle) */
     .divider{
       flex: 0 0 var(--divider-w);
       width: var(--divider-w);
-      cursor: col-resize;
       position: relative;
-      background: var(--divider-bg);
-      box-shadow:
-        inset 0 0 0 1px var(--divider-outline);
-      touch-action: none;
+      background: var(--rail);
+      box-shadow: inset 0 0 0 1px var(--rail-border);
+      cursor: default;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
+      touch-action: none; /* we control gestures on divider only */
     }
 
-    /* Make it very obvious */
+    /* A thin center line */
     .divider::before{
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 50%;
-      width: 2px;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.35);
+      content:"";
+      position:absolute;
+      top:0; bottom:0;
+      left:50%;
+      width:2px;
+      transform:translateX(-50%);
+      background: rgba(0,0,0,0.14);
     }
 
-    /* Grabber "dots" */
-    .grabber{
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 12px;
-      height: 56px;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.65);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.25);
-      display: grid;
-      place-items: center;
-      pointer-events: none;
-    }
-
-    .grabber .dots{
-      width: 6px;
-      height: 36px;
-      display: grid;
-      grid-template-rows: repeat(6, 1fr);
-      gap: 4px;
-    }
-
-    .grabber .dots span{
-      display: block;
-      width: 6px;
-      height: 6px;
+    /* Thumb handle */
+    .thumb{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      width: 10px;
+      height: 74px;
       border-radius: 999px;
-      background: rgba(0,0,0,0.35);
+      background: rgba(255,255,255,0.75);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
     }
 
-    /* Active drag feedback */
-    .divider.dragging{
-      background: rgba(0,0,0,0.28);
+    .thumb::after{
+      content:"";
+      width: 3px;
+      height: 38px;
+      border-radius: 999px;
+      background: var(--thumb);
     }
-    .divider.dragging::before{
-      background: rgba(0,0,0,0.55);
+
+    /* Locked vs armed states */
+    .divider.armed{
+      background: rgba(0,0,0,0.14);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18);
+      cursor: col-resize;
     }
+    .divider.armed::before{ background: rgba(0,0,0,0.22); }
+    .divider.armed .thumb::after{ background: var(--thumb-strong); }
+
+    /* Little “Hold to resize” hint */
+    .hold-hint{
+      position: absolute;
+      left: 50%;
+      top: 16px;
+      transform: translateX(-50%);
+      background: var(--hint-bg);
+      color: var(--hint-text);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 999px;
+      letter-spacing: 0.2px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      white-space: nowrap;
+    }
+    .divider.show-hint .hold-hint{
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Optional: when armed, show a small progress ring */
+    .ring{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      background:
+        conic-gradient(rgba(0,0,0,0.35) var(--p, 0deg), rgba(0,0,0,0.0) 0);
+      opacity: 0;
+      transition: opacity 0.12s ease;
+      pointer-events:none;
+    }
+    .divider.holding .ring{ opacity: 1; }
   </style>
 </head>
 
@@ -145,12 +181,10 @@
       ></iframe>
     </div>
 
-    <div class="divider" id="divider" aria-label="Resize split divider" role="separator" aria-orientation="vertical">
-      <div class="grabber" aria-hidden="true">
-        <div class="dots">
-          <span></span><span></span><span></span><span></span><span></span><span></span>
-        </div>
-      </div>
+    <div class="divider" id="divider" aria-label="Hold to resize split" role="separator" aria-orientation="vertical">
+      <div class="hold-hint" id="holdHint">Hold 2s to resize</div>
+      <div class="ring" id="ring"></div>
+      <div class="thumb" aria-hidden="true"></div>
     </div>
 
     <div class="pane" id="rightPane">
@@ -168,8 +202,12 @@
     (function () {
       const divider = document.getElementById("divider");
       const splitRoot = document.getElementById("splitRoot");
+      const ring = document.getElementById("ring");
 
       const LEFT_W_KEY = "icas-ipad-leftW-px";
+
+      const HOLD_MS = 2000;         // must hold for 2s
+      const MOVE_CANCEL_PX = 10;    // if finger moves too much before hold completes, cancel
 
       function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
 
@@ -188,60 +226,134 @@
 
       function initWidth() {
         const saved = getSavedLeftWidthPx();
-        if (saved != null) {
-          applyLeftWidthPx(saved);
-        } else {
-          // default to 50/50 at current viewport
-          applyLeftWidthPx(Math.round(window.innerWidth * 0.5));
-        }
+        if (saved != null) applyLeftWidthPx(saved);
+        else applyLeftWidthPx(Math.round(window.innerWidth * 0.5));
       }
-
-      let dragging = false;
 
       function setFromClientX(clientX) {
         const rect = splitRoot.getBoundingClientRect();
-        const dividerW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--divider-w")) || 18;
+        const dividerW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--divider-w")) || 14;
 
-        const minLeft = 120;
-        const maxLeft = (rect.width - dividerW - 120);
+        const minLeft = 160;
+        const maxLeft = (rect.width - dividerW - 160);
 
         const px = clamp(clientX - rect.left, minLeft, maxLeft);
         applyLeftWidthPx(px);
         saveLeftWidthPx(px);
       }
 
+      let pointerId = null;
+      let startX = 0;
+      let startY = 0;
+      let holdTimer = null;
+      let holdStart = 0;
+      let holding = false;  // countdown in progress
+      let armed = false;    // hold completed; now resizing allowed
+      let rafId = null;
+
+      function resetHoldUI() {
+        divider.classList.remove("holding", "armed");
+        divider.style.setProperty("--p", "0deg");
+        holding = false;
+        armed = false;
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
+      function startProgressRing() {
+        holdStart = performance.now();
+        divider.classList.add("holding");
+
+        const tick = (t) => {
+          const elapsed = t - holdStart;
+          const pct = clamp(elapsed / HOLD_MS, 0, 1);
+          divider.style.setProperty("--p", (pct * 360) + "deg");
+          if (holding && pct < 1) rafId = requestAnimationFrame(tick);
+        };
+
+        rafId = requestAnimationFrame(tick);
+      }
+
+      function beginHold() {
+        holding = true;
+        startProgressRing();
+
+        holdTimer = setTimeout(() => {
+          // now allow resizing
+          holding = false;
+          armed = true;
+          divider.classList.remove("holding");
+          divider.classList.add("armed");
+          divider.style.setProperty("--p", "360deg");
+        }, HOLD_MS);
+      }
+
+      function cancelHold() {
+        if (holdTimer) clearTimeout(holdTimer);
+        holdTimer = null;
+        resetHoldUI();
+      }
+
       divider.addEventListener("pointerdown", (e) => {
-        dragging = true;
-        divider.classList.add("dragging");
-        try { divider.setPointerCapture(e.pointerId); } catch {}
-        setFromClientX(e.clientX);
+        // Start the 2s hold. Do NOT resize yet.
+        pointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
+        cancelHold(); // clear any previous state
+        divider.classList.add("show-hint");
+        beginHold();
+
+        try { divider.setPointerCapture(pointerId); } catch {}
         e.preventDefault();
       });
 
       divider.addEventListener("pointermove", (e) => {
-        if (!dragging) return;
-        setFromClientX(e.clientX);
-        e.preventDefault();
+        if (pointerId === null || e.pointerId !== pointerId) return;
+
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+
+        // If user starts scrolling/moving before it arms, cancel the hold
+        if (!armed && (dx > MOVE_CANCEL_PX || dy > MOVE_CANCEL_PX)) {
+          cancelHold();
+          divider.classList.remove("show-hint");
+          pointerId = null;
+          try { divider.releasePointerCapture(e.pointerId); } catch {}
+          return;
+        }
+
+        // Only resize after hold is complete (armed)
+        if (armed) {
+          setFromClientX(e.clientX);
+          e.preventDefault();
+        }
       });
 
-      divider.addEventListener("pointerup", (e) => {
-        dragging = false;
-        divider.classList.remove("dragging");
+      function endPointer(e) {
+        if (pointerId === null || e.pointerId !== pointerId) return;
+
+        // If they let go before armed, just cancel (no resize)
+        if (!armed) cancelHold();
+
+        divider.classList.remove("show-hint");
+        pointerId = null;
+
         try { divider.releasePointerCapture(e.pointerId); } catch {}
+        // Keep armed state only while finger is down; on release, lock again
+        resetHoldUI();
         e.preventDefault();
-      });
+      }
 
-      divider.addEventListener("pointercancel", () => {
-        dragging = false;
-        divider.classList.remove("dragging");
-      });
+      divider.addEventListener("pointerup", endPointer);
+      divider.addEventListener("pointercancel", endPointer);
 
-      // Keep the split sane on rotate/resize
+      // Keep split sane on rotate/resize
       window.addEventListener("resize", () => {
         const rect = splitRoot.getBoundingClientRect();
-        const dividerW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--divider-w")) || 18;
-        const minLeft = 120;
-        const maxLeft = (rect.width - dividerW - 120);
+        const dividerW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--divider-w")) || 14;
+
+        const minLeft = 160;
+        const maxLeft = (rect.width - dividerW - 160);
 
         const saved = getSavedLeftWidthPx();
         const px = clamp(saved != null ? saved : rect.width * 0.5, minLeft, maxLeft);
