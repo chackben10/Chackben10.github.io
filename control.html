@@ -770,25 +770,14 @@
       const SERVICE_LOGO_UUID_KEY = "icas-service-logo-uuid";
       const TESTIMONIES_LOGO_UUID_KEY = "icas-testimonies-logo-uuid";
 
-      // NEW: macro selection persistence
-      const MACRO_NAME_KEY = "icas-control-macro-name";
+      // macro selection persistence
+      const MACRO_NAME_KEY = "icas-macro-name";
 
       // Button scaling (40–200)
       const BTN_SCALE_KEY = "icas-control-btn-scale";
 
       // Show/hide Presets header+desc
       const SHOW_DESC_KEY = "icas-control-show-description";
-
-      // NEW: fallback macro list (used if backend doesn't yet provide /macros)
-      const FALLBACK_MACROS = [
-        "Bible Macro",
-        "Malayalam Songs Macro",
-        "[Aud] Malayalam Song Macro",
-        "English Songs Macro",
-        "[Aud] English Songs Macro",
-        "Presentation Macro",
-        "Presentation Streamer Macro"
-      ];
 
       function normalizeBase(u) {
         u = String(u || "").trim();
@@ -804,13 +793,11 @@
         return {
           health: `${base}/health`,
           serviceLogos: `${base}/service_logos`,
-          preset: `${base}/preset`,
-          // NEW: (will work once init.lua exposes it)
           macros: `${base}/macros`,
-          // NEW: (will work once init.lua exposes it)
-          macro: `${base}/macro`
+          macro: `${base}/macro`,
+          preset: `${base}/preset`
         };
-      }
+      =}
 
       // ====== THEME ======
       function applyTheme(mode) {
@@ -940,16 +927,18 @@
           btnStreamBeginning, btnCamera, btnServiceLogo, btnShowSlides,
           btnTestimonies, btnEndingStream,
           btnCameraSafeClear, btnServiceLogoSafeClear,
-          btnSafelyClearSlide, btnNSCSetup,
-          btnSetMacro
+          btnSafelyClearSlide, btnNSCSetup
         ].forEach(b => { if (b) b.disabled = !enabled; });
-
+        
+        // Macro button + select are controlled by refreshMacros()
+				if (btnSetMacro) btnSetMacro.disabled = true;
+        if (macroSelect) macroSelect.disabled = true;
+        
         refreshLogosBtn.disabled = !enabled;
         testBackendBtn.disabled = false; // always allow manual test attempt
-        serviceLogoSelect.disabled = !enabled;
+				serviceLogoSelect.disabled = !enabled;
         testimoniesLogoSelect.disabled = !enabled;
-        if (macroSelect) macroSelect.disabled = !enabled;
-      }
+      }=
 
       function escapeHtml(s) {
         return String(s || "").replace(/[&<>"']/g, c => ({
@@ -1081,20 +1070,30 @@
         }
       }
 
-      // NEW: try to pull macros from backend; if not available yet, use fallback list
+      // Macros MUST come from backend (/macros). No fallback.
       async function refreshMacros() {
         if (!macroSelect) return;
-
+        
         const { macros } = endpoints();
         try {
           const res = await fetch(macros, { cache: "no-cache" });
           if (!res.ok) throw new Error("Bad response");
+          
           const data = await res.json();
           const items = Array.isArray(data?.items) ? data.items : [];
           const names = items.map(x => x?.name).filter(Boolean);
+          
           fillMacroSelect(macroSelect, names, MACRO_NAME_KEY);
+          
+          const hasAny = Array.isArray(names) && names.length > 0 && String(names[0] || "").trim() !== "";
+          
+          if (btnSetMacro) btnSetMacro.disabled = !hasAny;
+          macroSelect.disabled = !hasAny;
         } catch {
-          fillMacroSelect(macroSelect, FALLBACK_MACROS, MACRO_NAME_KEY);
+          fillMacroSelect(macroSelect, [], MACRO_NAME_KEY);
+          
+          if (btnSetMacro) btnSetMacro.disabled = true;
+          macroSelect.disabled = true;
         } finally {
           syncDescriptions();
         }
@@ -1326,9 +1325,11 @@
         setBackendStatus(false, "Backend: Checking…");
         setLastAction("—");
 
-        // Populate macro selector immediately (fallback), then try backend
+        // Start empty; macros are loaded ONLY from backend
         if (macroSelect) {
-          fillMacroSelect(macroSelect, FALLBACK_MACROS, MACRO_NAME_KEY);
+          fillMacroSelect(macroSelect, [], MACRO_NAME_KEY);
+          btnSetMacro.disabled = true;
+          macroSelect.disabled = true;
         }
         syncDescriptions();
 
@@ -1339,6 +1340,12 @@
         } else {
           fillSelect(serviceLogoSelect, [], SERVICE_LOGO_UUID_KEY, true);
           fillSelect(testimoniesLogoSelect, [], TESTIMONIES_LOGO_UUID_KEY, true);
+          
+          if (macroSelect) {
+            fillMacroSelect(macroSelect, [], MACRO_NAME_KEY);
+            btnSetMacro.disabled = true;
+            macroSelect.disabled = true;
+          }
           syncDescriptions();
         }
 
