@@ -362,11 +362,6 @@ end
 local function fetchFullPresentationJSON()
   refreshPresentationBase()
 
-  ----------------------------------------------------------
-  -- ACTIVE MODE
-  -- If active is Blank Preview, DO NOT show it.
-  -- Instead: try showing focused (with the same filtering rules).
-  ----------------------------------------------------------
   if currentMode() == "active" then
     local ok, status, body = pcall(function()
       return hs.http.get(proRemote.PROPRESENTER_ACTIVE_BASE, { ["accept"]="application/json" })
@@ -379,16 +374,12 @@ local function fetchFullPresentationJSON()
     local activeUUID = activeUUIDFromObj(activeObj)
 
     if isBlankPreviewUUID(activeUUID) then
-      -- Fall through to focused logic below
+      -- fall through to focused logic below
     else
       return body
     end
   end
 
-  ----------------------------------------------------------
-  -- FOCUSED MODE (also used as fallback when active is Blank Preview)
-  -- If focused is Blank Preview, show nothing.
-  ----------------------------------------------------------
   local focused = fetchFocusedInfo()
   if not focused or not focused.uuid then
     return blankPresentationResponse("no_focused")
@@ -405,9 +396,6 @@ local function fetchFullPresentationJSON()
 
   local dest = presentationDestinationFromObj(fullObj)
 
-  ----------------------------------------------------------
-  -- Existing rule: if focused destination=announcements, try /active/focus once
-  ----------------------------------------------------------
   if dest == "announcements" then
     pcall(function()
       hs.http.get(proRemote.PROPRESENTER_ACTIVE_FOCUS, { ["accept"]="application/json" })
@@ -497,7 +485,6 @@ local function proTriggerMacroByName(macroName)
   macroName = trim(macroName)
   if macroName == "" then return false end
 
-  -- /v1/macro/[name]/trigger (name must be URL-encoded)
   local url = string.format(
     "http://localhost:49232/v1/macro/%s/trigger",
     hs.http.encodeForQuery(macroName)
@@ -560,7 +547,6 @@ local function bridgeStart()
 
   bridgeKillTask()
 
-  -- IMPORTANT: streaming callback MUST return boolean (true = keep streaming)
   local function streamFn(task, stdOut, stdErr)
     return true
   end
@@ -889,4 +875,4 @@ startClickerListener()
 bridgeStart()
 bridgeWatchdogStart()
 
-hs.alert.show("ProPresenter Remote/OBS Remote Control Ready")0
+hs.alert.show("ProPresenter Remote/OBS Remote Control Ready")
