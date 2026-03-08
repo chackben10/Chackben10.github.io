@@ -44,7 +44,6 @@ proRemote.STREAM_RESTART_DELAY_SEC = 1.0
 
 -- HTTP server
 proRemote.HTTP_SERVER_PORT      = 1337
--- CHANGED: allow LAN access (Cloudflare Tunnel still works either way)
 proRemote.HTTP_SERVER_INTERFACE = "127.0.0.1"
 
 -- OBS Bridge (Node)
@@ -81,7 +80,6 @@ proRemote.PRESET_IMAC_SCREEN_UUID     = "AC813C59-FF90-483F-8532-406CF8DD056A"
 proRemote.SAFECLEAR_DELAY_SEC         = 0.50
 
 -- Service Logo dictionary
--- Add/remove entries here.
 proRemote.SERVICE_LOGOS = {
   { name = "Basic Service Logo",     uuid = "4ED2B2D8-EFE7-4875-BE88-186756A5E57E" },
   { name = "Communion Service Logo", uuid = "82668B6D-5B98-4640-94E3-C69173FA4183" },
@@ -89,9 +87,7 @@ proRemote.SERVICE_LOGOS = {
 }
 
 ------------------------------------------------------------
--- NEW: Macro dictionary (NAME triggers)
--- ProPresenter API: /v1/macro/[name]/trigger
--- Add/remove entries here (names must match exactly).
+-- Macro dictionary (NAME triggers)
 ------------------------------------------------------------
 
 proRemote.MACROS = {
@@ -112,6 +108,31 @@ proRemote.PROPRESENTER_TIMER_START = "http://localhost:49232/v1/timer/Service%20
 proRemote.PROPRESENTER_TIMER_STOP  = "http://localhost:49232/v1/timer/Service%20Countdown/stop"
 proRemote.PROPRESENTER_TIMER_RESET = "http://localhost:49232/v1/timer/Service%20Countdown/reset"
 proRemote.TIMER_STOP_RESET_DELAY_SEC = 0.5
+
+------------------------------------------------------------
+-- Thumbnail config
+------------------------------------------------------------
+
+proRemote.THUMBNAIL_LOW_QUALITY       = 220
+proRemote.THUMBNAIL_HIGH_QUALITY      = 800
+proRemote.THUMBNAIL_TYPE              = "png"
+
+-- How long to keep cached versions
+proRemote.THUMBNAIL_LOW_CACHE_TTL_SEC  = 20
+proRemote.THUMBNAIL_HIGH_CACHE_TTL_SEC = 300
+
+-- Limits / behavior
+proRemote.THUMBNAIL_CACHE_MAX           = 500
+proRemote.THUMBNAIL_PREFETCH_MAX_SLIDES = 250
+proRemote.THUMBNAIL_PREFETCH_PRIORITY   = 12
+proRemote.THUMBNAIL_QUEUE_DELAY_SEC     = 0.02
+
+proRemote._thumbnailCache     = proRemote._thumbnailCache     or {}
+proRemote._thumbnailQueue     = proRemote._thumbnailQueue     or {}
+proRemote._thumbnailQueuedSet = proRemote._thumbnailQueuedSet or {}
+proRemote._thumbnailInflight  = proRemote._thumbnailInflight  or {}
+proRemote._thumbnailWorkerBusy = proRemote._thumbnailWorkerBusy or false
+proRemote._thumbnailPrefetchedPresentations = proRemote._thumbnailPrefetchedPresentations or {}
 
 ------------------------------------------------------------
 -- Utility
@@ -280,11 +301,10 @@ local function triggerFocusedSlide(index)
 end
 
 ------------------------------------------------------------
--- NEW: Clicker key listener (THIS WAS MISSING)
+-- Clicker key listener
 ------------------------------------------------------------
 
 local function startClickerListener()
-  -- Stop existing listener (reload-safe)
   if proRemote._clickerTap then
     pcall(function() proRemote._clickerTap:stop() end)
     proRemote._clickerTap = nil
@@ -294,10 +314,10 @@ local function startClickerListener()
     local keyCode = e:getKeyCode()
     if keyCode == proRemote.nextSlideKey then
       pcall(triggerNextSlide)
-      return true -- swallow so it doesn't type
+      return true
     elseif keyCode == proRemote.prevSlideKey then
       pcall(triggerPreviousSlide)
-      return true -- swallow so it doesn't type
+      return true
     end
     return false
   end)
@@ -356,6 +376,235 @@ local function isBlankPreviewUUID(uuid)
 end
 
 ------------------------------------------------------------
+-- Thumbnail cache + queue helpers
+------------------------------------------------------------
+
+local TRANSPARENT_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1Z0AAAAASUVORK5CYII="
+
+local function getTransparentPngBody()
+  local ok, body = pcall(function()
+    if hs.base64 and hs.base64.decode then
+      return hs.base64.decode(TRANSPARENT_PNG_BASE64)
+    end
+    return nil
+  end)
+  if ok and body then return body end
+  return ""
+end
+
+local function thumbnailCacheKey(uuid, index)
+  return tostring(uuid or "") .. ":" .. tostring(index or "")
+end
+
+local function thumbnailJobKey(uuid, index, tier)
+  return tostring(uuid or "") .. ":" .. tostring(index or "") .. ":" .. tostring(tier or "")
+end
+
+local function thumbnailIsEntryExpired(item)
+  if type(item) ~= "table" then return true end
+  local age = nowSec() - (tonumber(item.storedAt) or 0)
+  local ttl = (item.tier == "high")
+    and (tonumber(proRemote.THUMBNAIL_HIGH_CACHE_TTL_SEC) or 300)
+    or (tonumber(proRemote.THUMBNAIL_LOW_CACHE_TTL_SEC) or 20)
+  return age > ttl
+end
+
+local function thumbnailCacheGetBest(uuid, index)
+  local key = thumbnailCacheKey(uuid, index)
+  local item = proRemote._thumbnailCache[key]
+  if not item then return nil end
+  if thumbnailIsEntryExpired(item) then
+    proRemote._thumbnailCache[key] = nil
+    return nil
+  end
+  return item
+end
+
+local function thumbnailCacheGetHigh(uuid, index)
+  local item = thumbnailCacheGetBest(uuid, index)
+  if item and item.tier == "high" then return item end
+  return nil
+end
+
+local function thumbnailCachePut(uuid, index, body, contentType, tier)
+  local key = thumbnailCacheKey(uuid, index)
+  local existing = proRemote._thumbnailCache[key]
+
+  if existing and not thumbnailIsEntryExpired(existing) then
+    if existing.tier == "high" and tier ~= "high" then
+      return
+    end
+  end
+
+  proRemote._thumbnailCache[key] = {
+    body = body,
+    contentType = contentType or "image/png",
+    tier = tier or "low",
+    storedAt = nowSec(),
+  }
+
+  local count = 0
+  for _ in pairs(proRemote._thumbnailCache) do
+    count = count + 1
+  end
+
+  local maxItems = tonumber(proRemote.THUMBNAIL_CACHE_MAX) or 500
+  if count <= maxItems then return end
+
+  local oldestKey = nil
+  local oldestTime = math.huge
+  for k, v in pairs(proRemote._thumbnailCache) do
+    local t = tonumber(v.storedAt) or math.huge
+    if t < oldestTime then
+      oldestTime = t
+      oldestKey = k
+    end
+  end
+  if oldestKey then
+    proRemote._thumbnailCache[oldestKey] = nil
+  end
+end
+
+local function thumbnailBuildUrl(uuid, index, tier)
+  local quality = (tier == "high")
+    and (tonumber(proRemote.THUMBNAIL_HIGH_QUALITY) or 800)
+    or (tonumber(proRemote.THUMBNAIL_LOW_QUALITY) or 220)
+
+  local thumbType = tostring(proRemote.THUMBNAIL_TYPE or "png")
+
+  return string.format(
+    "%s/%s/thumbnail/%d?quality=%d&thumbnail_type=%s",
+    proRemote.PROPRESENTER_UUID_BASE,
+    uuid,
+    index,
+    quality,
+    hs.http.encodeForQuery(thumbType)
+  )
+end
+
+local function thumbnailEnqueue(uuid, index, tier, front)
+  uuid = tostring(uuid or "")
+  index = tonumber(index)
+  tier = tostring(tier or "low")
+
+  if uuid == "" or not index or index < 0 then return false end
+  if tier ~= "low" and tier ~= "high" then return false end
+
+  if tier == "high" then
+    if thumbnailCacheGetHigh(uuid, index) then return false end
+  else
+    if thumbnailCacheGetBest(uuid, index) then return false end
+  end
+
+  local key = thumbnailJobKey(uuid, index, tier)
+  if proRemote._thumbnailQueuedSet[key] or proRemote._thumbnailInflight[key] then
+    return false
+  end
+
+  local job = { uuid = uuid, index = index, tier = tier }
+  if front then
+    table.insert(proRemote._thumbnailQueue, 1, job)
+  else
+    table.insert(proRemote._thumbnailQueue, job)
+  end
+  proRemote._thumbnailQueuedSet[key] = true
+  return true
+end
+
+local processNextThumbnailJob
+
+local function thumbnailKickWorker()
+  hs.timer.doAfter(0, function()
+    pcall(function()
+      processNextThumbnailJob()
+    end)
+  end)
+end
+
+processNextThumbnailJob = function()
+  if proRemote._thumbnailWorkerBusy then return end
+
+  local job = table.remove(proRemote._thumbnailQueue, 1)
+  if not job then return end
+
+  local jobKey = thumbnailJobKey(job.uuid, job.index, job.tier)
+  proRemote._thumbnailQueuedSet[jobKey] = nil
+  proRemote._thumbnailInflight[jobKey] = true
+  proRemote._thumbnailWorkerBusy = true
+
+  local url = thumbnailBuildUrl(job.uuid, job.index, job.tier)
+
+  hs.http.asyncGet(url, { ["Accept"] = "image/png" }, function(status, body, headers)
+    proRemote._thumbnailInflight[jobKey] = nil
+    proRemote._thumbnailWorkerBusy = false
+
+    if status == 200 and body and body ~= "" then
+      local contentType = (headers and (headers["Content-Type"] or headers["content-type"])) or "image/png"
+      thumbnailCachePut(job.uuid, job.index, body, contentType, job.tier)
+
+      if job.tier == "low" then
+        thumbnailEnqueue(job.uuid, job.index, "high", false)
+      end
+    end
+
+    hs.timer.doAfter(tonumber(proRemote.THUMBNAIL_QUEUE_DELAY_SEC) or 0.02, function()
+      pcall(function()
+        processNextThumbnailJob()
+      end)
+    end)
+  end)
+end
+
+local function extractPresentationUuidAndSlideCountFromBody(body)
+  local obj = decodeJson(body or "")
+  local pres = obj and obj.presentation
+  if type(pres) ~= "table" then return nil, 0 end
+
+  local uuid = pres.id and pres.id.uuid
+  if type(uuid) ~= "string" or uuid == "" then return nil, 0 end
+
+  local groups = pres.groups
+  if type(groups) ~= "table" then return uuid, 0 end
+
+  local count = 0
+  for _, g in ipairs(groups) do
+    local slides = g and g.slides
+    if type(slides) == "table" then
+      count = count + #slides
+    end
+  end
+
+  return uuid, count
+end
+
+local function prefetchPresentationThumbnailsFromBody(body)
+  local uuid, count = extractPresentationUuidAndSlideCountFromBody(body)
+  if not uuid or uuid == "" or count <= 0 then return end
+  if isBlankPreviewUUID(uuid) then return end
+
+  local maxSlides = tonumber(proRemote.THUMBNAIL_PREFETCH_MAX_SLIDES) or 250
+  if count > maxSlides then count = maxSlides end
+
+  local marker = uuid .. ":" .. tostring(count)
+  if proRemote._thumbnailPrefetchedPresentations[marker] then return end
+  proRemote._thumbnailPrefetchedPresentations[marker] = nowSec()
+
+  local priority = tonumber(proRemote.THUMBNAIL_PREFETCH_PRIORITY) or 12
+  if priority < 1 then priority = 1 end
+  if priority > count then priority = count end
+
+  for i = 0, priority - 1 do
+    thumbnailEnqueue(uuid, i, "low", false)
+  end
+
+  for i = priority, count - 1 do
+    thumbnailEnqueue(uuid, i, "low", false)
+  end
+
+  thumbnailKickWorker()
+end
+
+------------------------------------------------------------
 -- Unified Presentation Fetcher (ACTIVE or FOCUSED MODE)
 ------------------------------------------------------------
 
@@ -376,6 +625,9 @@ local function fetchFullPresentationJSON()
     if isBlankPreviewUUID(activeUUID) then
       -- fall through to focused logic below
     else
+      pcall(function()
+        prefetchPresentationThumbnailsFromBody(body)
+      end)
       return body
     end
   end
@@ -419,12 +671,18 @@ local function fetchFullPresentationJSON()
 
     local dest2 = presentationDestinationFromObj(fullObj2)
     if dest2 == "presentation" then
+      pcall(function()
+        prefetchPresentationThumbnailsFromBody(fullBody2)
+      end)
       return fullBody2
     end
 
     return blankPresentationResponse("focused_is_announcements")
   end
 
+  pcall(function()
+    prefetchPresentationThumbnailsFromBody(fullBody)
+  end)
   return fullBody
 end
 
@@ -437,18 +695,28 @@ local function fetchThumbnail(uuid, index)
     return "Missing uuid or index", 400, "text/plain; charset=utf-8"
   end
 
-  local url = string.format(
-    "%s/%s/thumbnail/%d?quality=800&thumbnail_type=png",
-    proRemote.PROPRESENTER_UUID_BASE, uuid, index
-  )
-
-  local status, body, headers = hs.http.doRequest(url, "GET", nil, { ["Accept"]="image/png" })
-  if status ~= 200 or not body then
-    return "Error fetching thumbnail", 500, "text/plain; charset=utf-8"
+  uuid = tostring(uuid or "")
+  index = tonumber(index)
+  if uuid == "" or not index or index < 0 then
+    return "Bad uuid or index", 400, "text/plain; charset=utf-8"
   end
 
-  local contentType = (headers and headers["Content-Type"]) or "image/png"
-  return body, 200, contentType
+  local high = thumbnailCacheGetHigh(uuid, index)
+  if high and high.body then
+    return high.body, 200, high.contentType or "image/png"
+  end
+
+  local best = thumbnailCacheGetBest(uuid, index)
+  if best and best.body then
+    thumbnailEnqueue(uuid, index, "high", false)
+    thumbnailKickWorker()
+    return best.body, 200, best.contentType or "image/png"
+  end
+
+  thumbnailEnqueue(uuid, index, "low", true)
+  thumbnailKickWorker()
+
+  return getTransparentPngBody(), 200, "image/png"
 end
 
 ------------------------------------------------------------
@@ -478,7 +746,7 @@ local function proClearAnnouncementsLayer()
 end
 
 ------------------------------------------------------------
--- NEW: ProPresenter macros (name-based trigger)
+-- ProPresenter macros (name-based trigger)
 ------------------------------------------------------------
 
 local function proTriggerMacroByName(macroName)
@@ -653,7 +921,9 @@ end
 local function parseQuery(path)
   local params = {}
   local q = path:match("%?(.*)$") or ""
-  for k, v in q:gmatch("([^&=]+)=([^&=]+)") do params[k] = v end
+  for k, v in q:gmatch("([^&=]+)=([^&=]+)") do
+    params[k] = v
+  end
   return params
 end
 
@@ -714,14 +984,14 @@ local function handleHttpPath(method, rawPath, body)
     return "OK", 200, "text/plain"
 
   ----------------------------------------------------------
-  -- Service logos list (existing)
+  -- Service logos list
   ----------------------------------------------------------
   elseif p == "/service_logos" then
     local out = { items = getServiceLogosList() }
     return jsonResponse(out), 200, "application/json"
 
   ----------------------------------------------------------
-  -- NEW: Macros list + trigger
+  -- Macros list + trigger
   ----------------------------------------------------------
   elseif p == "/macros" then
     local out = { items = getMacrosList() }
@@ -737,7 +1007,6 @@ local function handleHttpPath(method, rawPath, body)
       return jsonResponse({ ok=false, error="bad_json" }), 400, "application/json"
     end
 
-    -- Accept either { name: "..." } or { macro_name: "..." }
     local macroName = trim(obj.name or obj.macro_name or "")
     if macroName == "" then
       return jsonResponse({ ok=false, error="missing_macro_name" }), 400, "application/json"
@@ -755,7 +1024,7 @@ local function handleHttpPath(method, rawPath, body)
     return jsonResponse({ ok=true, name=macroName }), 200, "application/json"
 
   ----------------------------------------------------------
-  -- Presets (existing)
+  -- Presets
   ----------------------------------------------------------
   elseif p == "/preset" then
     if method ~= "POST" then
@@ -847,7 +1116,9 @@ local function httpCallback(method, path, headers, body)
     ["Access-Control-Allow-Headers"] = "Content-Type",
   }
 
-  if method == "OPTIONS" then return "", 204, h end
+  if method == "OPTIONS" then
+    return "", 204, h
+  end
 
   local ok, bodyData, status, contentType = pcall(handleHttpPath, method, path, body)
   if not ok then
@@ -858,7 +1129,10 @@ local function httpCallback(method, path, headers, body)
   return bodyData, status, h
 end
 
-if proRemote.server then proRemote.server:stop() end
+if proRemote.server then
+  proRemote.server:stop()
+end
+
 proRemote.server = hs.httpserver.new(false, false)
 proRemote.server:setPort(proRemote.HTTP_SERVER_PORT)
 proRemote.server:setInterface(proRemote.HTTP_SERVER_INTERFACE)
@@ -874,5 +1148,7 @@ startClickerListener()
 
 bridgeStart()
 bridgeWatchdogStart()
+
+thumbnailKickWorker()
 
 hs.alert.show("ProPresenter Remote/OBS Remote Control Ready")
