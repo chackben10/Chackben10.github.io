@@ -168,9 +168,14 @@
       max-height: 200px;
       object-fit: contain;
       border-radius: 10px;
+      display: block;
     }
 
-    /* NEW: Notes styling (distinct from normal text) */
+    .slide-thumb.loading {
+      min-height: 72px;
+      opacity: 0.35;
+    }
+
     .slide-notes {
       margin-top: 8px;
       padding-top: 8px;
@@ -181,7 +186,6 @@
       word-break: break-word;
     }
 
-    /* Settings modal */
     .settings-overlay {
       position: fixed;
       inset: 0;
@@ -228,11 +232,13 @@
       width: 46px;
       height: 26px;
     }
+
     .switch input {
       opacity: 0;
       width: 0;
       height: 0;
     }
+
     .slider {
       position: absolute;
       inset: 0;
@@ -240,6 +246,7 @@
       border-radius: 999px;
       transition: 0.2s;
     }
+
     .slider:before {
       content: "";
       position: absolute;
@@ -251,9 +258,11 @@
       border-radius: 50%;
       transition: 0.2s;
     }
+
     .switch input:checked + .slider {
       background-color: #ff5252;
     }
+
     .switch input:checked + .slider:before {
       transform: translateX(20px);
     }
@@ -330,12 +339,10 @@
     <div id="slidesContainer" class="slides-list"></div>
   </div>
 
-  <!-- Settings modal -->
   <div id="settingsOverlay" class="settings-overlay">
     <div class="settings-card">
       <div class="settings-title">Settings</div>
 
-      <!-- Viewer Mode toggle -->
       <div class="settings-row">
         <span>Viewer Mode</span>
         <label class="switch">
@@ -347,7 +354,6 @@
         Disables slide picking
       </div>
 
-      <!-- Auto-Scroll toggle -->
       <div class="settings-row">
         <span>Auto-Scroll</span>
         <label class="switch">
@@ -359,7 +365,6 @@
         Automatically scrolls to the current slide
       </div>
 
-      <!-- Slide Preview Preference -->
       <div class="settings-row-column">
         <label>Slide Preview Preference</label>
         <div class="segment" id="previewPreferenceSegment">
@@ -368,7 +373,6 @@
         </div>
       </div>
 
-      <!-- NEW: Show Slide Notes toggle (default OFF) -->
       <div class="settings-row" style="margin-top: 12px;">
         <span>Show Slide Notes</span>
         <label class="switch">
@@ -407,18 +411,20 @@
     const TEXT_SCALE_KEY = "icas-picker-text-scale";
     const THEME_KEY = "icas-theme-mode";
     const VIEWER_MODE_KEY = "icas-viewer-mode";
-
-    // Values: "image" | "text"
     const PREVIEW_PREF_KEY = "icas-slide-preview-preference";
-
-    // Auto-scroll
     const AUTO_SCROLL_KEY = "icas-auto-scroll";
-
-    // NEW: Show notes toggle
     const SHOW_NOTES_KEY = "icas-show-slide-notes";
+
+    const PLACEHOLDER_SIZE_BYTES_MAX = 100;
 
     let pendingSelectedIndex = null;
     let lastSlideIndexForAutoScroll = null;
+
+    const thumbCache = {};
+    const thumbInflight = {};
+    const thumbPollTimers = {};
+    const thumbTargets = {};
+    const thumbLatestBlobUrl = {};
 
     function applyTheme(mode) {
       if (mode === "light") {
@@ -455,6 +461,7 @@
     function getViewerMode() {
       return localStorage.getItem(VIEWER_MODE_KEY) === "true";
     }
+
     function setViewerMode(v) {
       localStorage.setItem(VIEWER_MODE_KEY, v ? "true" : "false");
     }
@@ -462,6 +469,7 @@
     function getAutoScroll() {
       return localStorage.getItem(AUTO_SCROLL_KEY) === "true";
     }
+
     function setAutoScroll(v) {
       localStorage.setItem(AUTO_SCROLL_KEY, v ? "true" : "false");
     }
@@ -470,6 +478,7 @@
       const raw = parseInt(localStorage.getItem(TEXT_SCALE_KEY), 10);
       return Number.isNaN(raw) ? 100 : Math.min(300, Math.max(50, raw));
     }
+
     function setTextScale(v) {
       localStorage.setItem(TEXT_SCALE_KEY, String(v));
     }
@@ -478,55 +487,210 @@
       el.style.fontSize = (0.95 * (scale / 100)) + "rem";
     }
 
-    // Preview preference helpers
     function getPreviewPreference() {
       const v = localStorage.getItem(PREVIEW_PREF_KEY);
       return (v === "text" || v === "image") ? v : "text";
     }
+
     function setPreviewPreference(v) {
       localStorage.setItem(PREVIEW_PREF_KEY, v);
     }
+
     function updatePreviewPrefSegmentUI(pref) {
       document.querySelectorAll("#previewPreferenceSegment button").forEach(btn => {
         btn.classList.toggle("active", btn.dataset.pref === pref);
       });
     }
 
-    // NEW: Show notes helpers (default OFF)
     function getShowNotes() {
       return localStorage.getItem(SHOW_NOTES_KEY) === "true";
     }
+
     function setShowNotes(v) {
       localStorage.setItem(SHOW_NOTES_KEY, v ? "true" : "false");
     }
 
-    const thumbCache = {};
-    async function loadThumbnail(uuid, index) {
-      const key = `${uuid}_${index}`;
-      if (thumbCache[key]) return thumbCache[key];
+    function thumbnailKey(uuid, index) {
+      return `${uuid}_${index}`;
+    }
+
+    function isPlaceholderBlob(blob) {
+      if (!blob) return true;
+      return blob.size <= PLACEHOLDER_SIZE_BYTES_MAX;
+    }
+
+    function setImageSrc(img, newUrl) {
+      const oldManagedUrl = img.dataset.objectUrl || "";
+      img.src = newUrl;
+      img.dataset.objectUrl = newUrl;
+
+      if (oldManagedUrl && oldManagedUrl !== newUrl) {
+        try {
+          URL.revokeObjectURL(oldManagedUrl);
+        } catch {}
+      }
+    }
+
+    async function fetchThumbnailBlob(uuid, index, { bust = false } = {}) {
+      const key = thumbnailKey(uuid, index);
+      if (thumbInflight[key]) return thumbInflight[key];
+
+      const reqUrl =
+        `${BASE_URL}/thumbnail?uuid=${encodeURIComponent(uuid)}&index=${encodeURIComponent(index)}` +
+        (bust ? `&t=${Date.now()}` : "");
+
+      thumbInflight[key] = fetch(reqUrl, { cache: "no-store" })
+        .then(async res => {
+          if (!res.ok) throw new Error(`Thumbnail request failed: ${res.status}`);
+          const blob = await res.blob();
+          return blob;
+        })
+        .finally(() => {
+          delete thumbInflight[key];
+        });
+
+      return thumbInflight[key];
+    }
+
+    async function loadThumbnail(uuid, index, options = {}) {
+      const key = thumbnailKey(uuid, index);
+
+      if (!options.force && thumbCache[key]) {
+        return thumbCache[key];
+      }
+
       try {
-        const res = await fetch(`${BASE_URL}/thumbnail?uuid=${uuid}&index=${index}`);
-        if (!res.ok) throw new Error();
-        const blob = await res.blob();
+        const blob = await fetchThumbnailBlob(uuid, index, { bust: !!options.bust });
+        const isPlaceholder = isPlaceholderBlob(blob);
         const url = URL.createObjectURL(blob);
-        thumbCache[key] = url;
-        return url;
+
+        const oldCached = thumbCache[key];
+        thumbCache[key] = {
+          url,
+          isPlaceholder,
+          fetchedAt: Date.now()
+        };
+
+        if (oldCached && oldCached.url && oldCached.url !== url) {
+          try {
+            URL.revokeObjectURL(oldCached.url);
+          } catch {}
+        }
+
+        return thumbCache[key];
       } catch {
         return null;
       }
     }
 
+    function clearThumbPoll(key) {
+      if (thumbPollTimers[key]) {
+        clearTimeout(thumbPollTimers[key]);
+        delete thumbPollTimers[key];
+      }
+    }
+
+    function pollUntilThumbnailReady(uuid, index) {
+      const key = thumbnailKey(uuid, index);
+      clearThumbPoll(key);
+
+      const run = async () => {
+        const targets = thumbTargets[key];
+        if (!targets || targets.size === 0) {
+          clearThumbPoll(key);
+          return;
+        }
+
+        const result = await loadThumbnail(uuid, index, { force: true, bust: true });
+        if (!result) {
+          thumbPollTimers[key] = setTimeout(run, 650);
+          return;
+        }
+
+        const currentTargets = thumbTargets[key];
+        if (!currentTargets || currentTargets.size === 0) {
+          clearThumbPoll(key);
+          return;
+        }
+
+        currentTargets.forEach(img => {
+          if (!img.isConnected) return;
+          setImageSrc(img, result.url);
+          img.classList.toggle("loading", !!result.isPlaceholder);
+        });
+
+        if (result.isPlaceholder) {
+          thumbPollTimers[key] = setTimeout(run, 650);
+        } else {
+          clearThumbPoll(key);
+        }
+      };
+
+      thumbPollTimers[key] = setTimeout(run, 650);
+    }
+
+    function registerThumbTarget(uuid, index, img) {
+      const key = thumbnailKey(uuid, index);
+      if (!thumbTargets[key]) thumbTargets[key] = new Set();
+      thumbTargets[key].add(img);
+    }
+
+    function unregisterThumbTarget(uuid, index, img) {
+      const key = thumbnailKey(uuid, index);
+      if (!thumbTargets[key]) return;
+      thumbTargets[key].delete(img);
+      if (thumbTargets[key].size === 0) {
+        delete thumbTargets[key];
+        clearThumbPoll(key);
+      }
+    }
+
+    async function attachThumbnailToImage(img, uuid, index) {
+      registerThumbTarget(uuid, index, img);
+
+      const result = await loadThumbnail(uuid, index);
+      if (!img.isConnected) {
+        unregisterThumbTarget(uuid, index, img);
+        return;
+      }
+
+      if (!result) {
+        img.classList.remove("loading");
+        return;
+      }
+
+      setImageSrc(img, result.url);
+      img.classList.toggle("loading", !!result.isPlaceholder);
+
+      if (result.isPlaceholder) {
+        pollUntilThumbnailReady(uuid, index);
+      }
+    }
+
     function focusSlide(i) {
       pendingSelectedIndex = i;
-      fetch(`${BASE_URL}/focus?index=${i}`).catch(()=>{});
+      fetch(`${BASE_URL}/focus?index=${i}`).catch(() => {});
       setTimeout(fetchStatus, 350);
+    }
+
+    function makeNotesElement(notesHtml, textScale) {
+      const notesEl = document.createElement("div");
+      notesEl.className = "slide-notes";
+      notesEl.innerHTML = notesHtml;
+      applyTextScale(notesEl, textScale);
+      return notesEl;
+    }
+
+    function addNotesIfNeeded(item, hasNotes, notesHtml, textScale, showNotes) {
+      if (!showNotes || !hasNotes) return;
+      item.appendChild(makeNotesElement(notesHtml, textScale));
     }
 
     async function fetchStatus() {
       try {
         const [presRes, idxRes] = await Promise.all([
-          fetch(`${BASE_URL}/active-presentation`, {cache:"no-cache"}),
-          fetch(`${BASE_URL}/slide-index`, {cache:"no-cache"})
+          fetch(`${BASE_URL}/active-presentation`, { cache: "no-cache" }),
+          fetch(`${BASE_URL}/slide-index`, { cache: "no-cache" })
         ]);
 
         const pres = await presRes.json();
@@ -542,7 +706,7 @@
             g.slides?.forEach(s => slides.push({
               groupName: g.name || "",
               text: s.text || "",
-              notes: s.notes || ""   // NEW
+              notes: s.notes || ""
             }))
           );
         }
@@ -568,15 +732,16 @@
 
         const viewerMode = getViewerMode();
         const textScale = getTextScale();
-        const previewPref = getPreviewPreference(); // "text" or "image"
+        const previewPref = getPreviewPreference();
         const autoScroll = getAutoScroll();
-        const showNotes = getShowNotes(); // NEW
+        const showNotes = getShowNotes();
 
         let currentSlideEl = null;
 
         slides.forEach((slide, i) => {
           const item = document.createElement("button");
           item.className = "slide-item";
+          item.type = "button";
 
           if (!focused && i === indexValue) {
             item.classList.add("current");
@@ -605,80 +770,99 @@
 
           const hasText = (slide.text || "").trim() !== "";
           const hasNotes = (slide.notes || "").trim() !== "";
-
-          // Helper to append notes (under text OR under image), scaled with slider
-          const appendNotesIfNeeded = () => {
-            if (!showNotes || !hasNotes) return;
-            const notesEl = document.createElement("div");
-            notesEl.className = "slide-notes";
-            notesEl.innerHTML = slide.notes.replace(/\n/g, "<br>");
-            applyTextScale(notesEl, textScale);
-            item.appendChild(notesEl);
-          };
+          const textHtml = (slide.text || "").replace(/\n/g, "<br>");
+          const notesHtml = (slide.notes || "").replace(/\n/g, "<br>");
 
           if (previewPref === "text") {
             if (hasText) {
               const t = document.createElement("div");
               t.className = "slide-text";
-              t.innerHTML = slide.text.replace(/\n/g, "<br>");
+              t.innerHTML = textHtml;
               applyTextScale(t, textScale);
               item.appendChild(t);
 
-              // Notes under text
-              appendNotesIfNeeded();
+              addNotesIfNeeded(item, hasNotes, notesHtml, textScale, showNotes);
             } else if (uuid) {
-              loadThumbnail(uuid, i).then(url => {
-                if (url) {
-                  const img = document.createElement("img");
-                  img.src = url;
-                  img.className = "slide-thumb";
-                  item.appendChild(img);
+              const img = document.createElement("img");
+              img.className = "slide-thumb loading";
+              img.alt = `Slide ${i + 1} thumbnail`;
+              item.appendChild(img);
 
-                  // Notes under image
-                  appendNotesIfNeeded();
-                } else {
-                  // If no image available, still show notes (if any)
-                  appendNotesIfNeeded();
-                }
+              attachThumbnailToImage(img, uuid, i).then(() => {
+                if (!img.isConnected) return;
+                addNotesIfNeeded(item, hasNotes, notesHtml, textScale, showNotes);
               });
             } else {
-              // No text + no uuid, still show notes (if any)
-              appendNotesIfNeeded();
+              addNotesIfNeeded(item, hasNotes, notesHtml, textScale, showNotes);
             }
           } else {
-            // "image" preference: show image if available, otherwise show text
             let fallbackTextEl = null;
 
             if (hasText) {
               const t = document.createElement("div");
               t.className = "slide-text";
-              t.innerHTML = slide.text.replace(/\n/g, "<br>");
+              t.innerHTML = textHtml;
               applyTextScale(t, textScale);
               item.appendChild(t);
               fallbackTextEl = t;
             }
 
             if (uuid) {
-              loadThumbnail(uuid, i).then(url => {
-                if (url) {
+              const img = document.createElement("img");
+              img.className = "slide-thumb loading";
+              img.alt = `Slide ${i + 1} thumbnail`;
+
+              attachThumbnailToImage(img, uuid, i).then(() => {
+                if (!img.isConnected) return;
+
+                const key = thumbnailKey(uuid, i);
+                const cached = thumbCache[key];
+
+                if (cached && !cached.isPlaceholder) {
                   if (fallbackTextEl && fallbackTextEl.parentNode) {
                     fallbackTextEl.parentNode.removeChild(fallbackTextEl);
+                    fallbackTextEl = null;
                   }
-                  const img = document.createElement("img");
-                  img.src = url;
-                  img.className = "slide-thumb";
-                  item.appendChild(img);
 
-                  // Notes under image
-                  appendNotesIfNeeded();
+                  if (!img.parentNode) {
+                    item.appendChild(img);
+                  }
                 } else {
-                  // No image -> keep fallback text (if any), and notes under it
-                  appendNotesIfNeeded();
+                  if (!img.parentNode && !fallbackTextEl) {
+                    item.appendChild(img);
+                  } else if (!img.parentNode && fallbackTextEl) {
+                    item.appendChild(img);
+                  }
                 }
               });
+
+              if (hasText) {
+                const observer = new MutationObserver(() => {
+                  const key = thumbnailKey(uuid, i);
+                  const cached = thumbCache[key];
+                  if (cached && !cached.isPlaceholder) {
+                    if (fallbackTextEl && fallbackTextEl.parentNode) {
+                      fallbackTextEl.parentNode.removeChild(fallbackTextEl);
+                      fallbackTextEl = null;
+                    }
+                    if (!img.parentNode) {
+                      item.appendChild(img);
+                    }
+                    observer.disconnect();
+                  }
+                });
+
+                observer.observe(img, {
+                  attributes: true,
+                  attributeFilter: ["src", "class"]
+                });
+              } else {
+                item.appendChild(img);
+              }
+
+              addNotesIfNeeded(item, hasNotes, notesHtml, textScale, showNotes);
             } else {
-              // No uuid -> keep fallback text (if any), and notes under it
-              appendNotesIfNeeded();
+              addNotesIfNeeded(item, hasNotes, notesHtml, textScale, showNotes);
             }
           }
 
@@ -691,14 +875,12 @@
           container.appendChild(item);
         });
 
-        // Auto-scroll only when a NEW slide change is detected
         if (!focused && autoScroll && typeof indexValue === "number" && indexValue !== lastSlideIndexForAutoScroll) {
           lastSlideIndexForAutoScroll = indexValue;
           if (currentSlideEl) {
             currentSlideEl.scrollIntoView({ behavior: "smooth", block: "center" });
           }
         } else if (!focused && typeof indexValue === "number" && lastSlideIndexForAutoScroll === null) {
-          // Initialize baseline without scrolling on first load
           lastSlideIndexForAutoScroll = indexValue;
         }
 
@@ -731,7 +913,6 @@
         const themeMode = localStorage.getItem(THEME_KEY) || "system";
         updateThemeSegmentUI(themeMode);
 
-        // NEW: show notes
         document.getElementById("showNotesToggle").checked = getShowNotes();
       }
 
@@ -773,9 +954,11 @@
 
       const textSlider = document.getElementById("textSizeSlider");
       const textVal = document.getElementById("textSizeValue");
+
       textSlider.addEventListener("input", () => {
         textVal.textContent = `${textSlider.value}%`;
       });
+
       textSlider.addEventListener("change", () => {
         setTextScale(textSlider.value);
         fetchStatus();
