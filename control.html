@@ -797,7 +797,7 @@
           macro: `${base}/macro`,
           preset: `${base}/preset`
         };
-      =}
+      }
 
       // ====== THEME ======
       function applyTheme(mode) {
@@ -938,7 +938,7 @@
         testBackendBtn.disabled = false; // always allow manual test attempt
 				serviceLogoSelect.disabled = !enabled;
         testimoniesLogoSelect.disabled = !enabled;
-      }=
+      }
 
       function escapeHtml(s) {
         return String(s || "").replace(/[&<>"']/g, c => ({
